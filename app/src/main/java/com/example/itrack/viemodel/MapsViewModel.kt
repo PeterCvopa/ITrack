@@ -1,5 +1,8 @@
 package com.example.itrack.viemodel
 
-class MapsViewModel (){
+import android.location.Location
+import androidx.lifecycle.ViewModel
 
+class MapsViewModel : ViewModel (){
+  var  locationsList : MutableList<Location> = mutableListOf()
 }
