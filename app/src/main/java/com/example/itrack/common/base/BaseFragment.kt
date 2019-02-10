@@ -8,7 +8,6 @@ import androidx.fragment.app.Fragment
 
 abstract class BaseFragment : Fragment() {
     private val DATA_LOADED_KEY = "DATA_LOADED_KEY"
-    protected var dataLoaded = false
 
     protected abstract fun getXmlResource(): Int
 
@@ -22,15 +21,13 @@ abstract class BaseFragment : Fragment() {
 
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
-        if (savedInstanceState != null) {
-            dataLoaded = savedInstanceState.getBoolean(DATA_LOADED_KEY, false)
-        }
         super.onActivityCreated(savedInstanceState)
+        if (savedInstanceState != null) {
+            //TODO
+        }
     }
 
-    override fun onResume() {
-        super.onResume()
-    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,7 +52,6 @@ abstract class BaseFragment : Fragment() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putBoolean(DATA_LOADED_KEY, dataLoaded)
         super.onSaveInstanceState(outState)
     }
 }

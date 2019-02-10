@@ -16,23 +16,20 @@ import java.lang.Exception
 
 class TrackerGPS(private val activity: Activity, val locationChangeCallBack: LocationChangeCallBack) {
 
-    private val TAG = TrackerGPS::class.java.simpleName
+    companion object {
+        private val TAG = TrackerGPS::class.simpleName
+        private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
+        private const val REQUEST_CHECK_SETTINGS = 0x1
+        private const val UPDATE_INTERVAL_IN_MILLISECONDS: Long = 10000
+        private const val UPDATE_INTERVAL_IN_MILLISECONDS_FAST: Long = UPDATE_INTERVAL_IN_MILLISECONDS / 2
+    }
 
-    private val REQUEST_PERMISSIONS_REQUEST_CODE = 1
-
-    private val REQUEST_CHECK_SETTINGS = 0x1
-
-    private val UPDATE_INTERVAL_IN_MILLISECONDS: Long = 10000
-    private val UPDATE_INTERVAL_IN_MILLISECONDS_FAST: Long = UPDATE_INTERVAL_IN_MILLISECONDS / 2
     private var mLocationSettingsRequest: LocationSettingsRequest? = createLocationSettingsRequest()
     private val locationRequest = createLocationRequest()
-    private val fusedLocationClient: FusedLocationProviderClient? =
-        LocationServices.getFusedLocationProviderClient(activity)
+    private val fusedLocationClient: FusedLocationProviderClient? = LocationServices.getFusedLocationProviderClient(activity)
     private val settingsClient: SettingsClient? = LocationServices.getSettingsClient(activity)
     private val locationCallback: LocationCallback = createLocationCallBack()
     private var isTracking: Boolean = false
-
-
 
     @SuppressLint("MissingPermission")
     fun getLastKnowLocation(listener: OnCompleteListener<Location>) {
@@ -52,7 +49,6 @@ class TrackerGPS(private val activity: Activity, val locationChangeCallBack: Loc
                 when (statusCode) {
                     LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
                         onSettingNeedResolution(e)
-
                     }
                     LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
                         onSettingFail()
@@ -103,12 +99,13 @@ class TrackerGPS(private val activity: Activity, val locationChangeCallBack: Loc
 
     fun stopLocationUpdates() {
         if (!isTracking) {
-            Log.d(TAG, "stopLocationUpdates: updates never requested, no-op.")
+            Log.d(TAG, "stopLocationUpdates: updates never requested.")
             return
         }
         fusedLocationClient?.removeLocationUpdates(locationCallback)
             ?.addOnCompleteListener(activity) {
                 isTracking = false
+                Log.d(TAG, "location updates stopped .")
             }
     }
 }

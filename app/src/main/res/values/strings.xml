@@ -5,4 +5,10 @@
         Permission was denied, but is needed for core functionality.
     </string>
     <string name="settings">Settings</string>
+    <string name="bottom_sheet_latitude">Latitude</string>
+    <string name="bottom_sheet_longitude">Longitude</string>
+    <string name="bottom_sheet_accuracy">Accuracy</string>
+    <string name="bottom_sheet_time_title">Timestamp</string>
+    <string name="bottom_sheet_source_title">Source</string>
+    <string name="bottom_sheet_title">Marker detail</string>
 </resources>
