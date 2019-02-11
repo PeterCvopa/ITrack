@@ -1,7 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
               android:orientation="vertical"
               android:layout_width="match_parent"
               android:layout_height="match_parent">
 
+    <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+        <TextView
+                android:id="@+id/colorTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_constraintTop_toTopOf="parent"
+                android:text=" Color "/>
+
+        <TextView
+                android:id="@+id/subColorTitle"
+                app:layout_constraintTop_toBottomOf="@id/colorTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=" Select line color"/>
+        <ImageView
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                android:id="@+id/pickedColorView"
+                android:layout_marginRight="32dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+    <com.skydoves.colorpickerpreference.ColorPickerView
+            android:id="@+id/colorPickerView"
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            app:palette="@drawable/palette"
+            app:selector="@drawable/wheel" />
 </LinearLayout>

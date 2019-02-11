@@ -13,4 +13,14 @@
     <string name="bottom_sheet_title">Marker detail</string>
     <string name="history_menu_text">History</string>
     <string name="stats_menu_text">Statistics</string>
+    <string name="settings_menu_text">Settings</string>
+    <string name="map_menu_text">Map</string>
+    <string name="drawer_header_sub_title">Tracker</string>
+    <string name="drawer_header_title">Menu</string>
+    <string name="distance_title">Distance</string>
+    <string name="max_title">Max</string>
+    <string name="min_title">Min</string>
+    <string name="average_title">Avg</string>
+    <string name="speed_title">Speed</string>
+    <string name="total_title">Total</string>
 </resources>

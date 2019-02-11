@@ -13,7 +13,6 @@ import android.util.Log
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.PermissionChecker
 import androidx.lifecycle.ViewModelProviders
@@ -50,6 +49,7 @@ class MapFragment : BaseFragment(), LocationChangeCallBack, OnMapReadyCallback, 
     private lateinit var timeView: TextView
     private lateinit var sourceView: TextView
 
+
     private lateinit var model: MapsViewModel
     private lateinit var mMap: GoogleMap
     private lateinit var tracker: TrackerGPS
@@ -57,6 +57,7 @@ class MapFragment : BaseFragment(), LocationChangeCallBack, OnMapReadyCallback, 
     private var options = PolylineOptions().width(5.0F).color(Color.BLUE).geodesic(true)
     private var currentLocations: Location? = null
     private var locationList: MutableList<Location> = mutableListOf()
+
 
     override fun onMarkerClick(marker: Marker?): Boolean {
         this.toggleBottomSheet()
@@ -66,8 +67,107 @@ class MapFragment : BaseFragment(), LocationChangeCallBack, OnMapReadyCallback, 
         return true
     }
 
+    override fun onMainDrawerOpened() {
+        Log.d(TAG, ".onMainDrawerOpened ")
+        closeBottomSheetIfNeeded()
+    }
+
+    override fun onMapReady(googleMap: GoogleMap) {
+        mMap = googleMap
+        mMap.setOnMarkerClickListener(this)
+        initTracking()
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        tracker = TrackerGPS(activity as Activity, this)
+    }
+
+    override fun onLocationReceived(locationResult: LocationResult) {
+        Log.d(TAG, ".onLocationReceived :{$locationResult}")
+        val location = locationResult.lastLocation
+        with(location) {
+            addLocationAndSetMarker(this)
+            addLine(this)
+            currentLocations = this
+        }
+        moveCameraToBounds()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        Log.i(TAG, "onRequestPermissionResult")
+        if (requestCode == REQUEST_PERMISSIONS_REQUEST_CODE) {
+            when {
+                grantResults.isEmpty() -> Log.i(TAG, "User interaction was cancelled.")
+                (grantResults[0] == PackageManager.PERMISSION_GRANTED) -> tracker.getLastKnowLocation(OnCompleteListener { task ->
+                    currentLocations = task.result!!
+                    Log.d(TAG, task.result.toString())
+                })
+                else -> {
+                    showSnackbar(
+                        R.string.permission_denied_explanation, R.string.settings,
+                        View.OnClickListener {
+                            val intent = Intent().apply {
+                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(intent)
+                        })
+                }
+            }
+        }
+    }
+
+    override fun getXmlResource(): Int {
+        return R.layout.map_fragment_layout
+    }
+
+    override fun initializeViews() {
+        supportMapFragment = (childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment)
+        supportMapFragment.getMapAsync(this)
+        sheetBehavior = BottomSheetBehavior.from(bottomSheetLayout)
+        sheetBehavior.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onStateChanged(p0: View, p1: Int) {
+                Log.d(TAG, "sheetBehavior.onStateChanged")
+            }
+
+            override fun onSlide(p0: View, p1: Float) {
+                Log.d(TAG, "sheetBehavior.onSlide")
+            }
+        })
+    }
+
+    override fun initializeModel() {
+        model = ViewModelProviders.of(this.activity!!).get(MapsViewModel::class.java)
+    }
+
+    override fun referenceView(view: View) {
+        bottomSheetLayout = view.findViewById(R.id.bottom_sheet)
+        latView = view.findViewById(R.id.bottom_sheet_lat_value)
+        longView = view.findViewById(R.id.bottom_sheet_long_value)
+        accuracyView = view.findViewById(R.id.bottom_sheet_accuracy_value)
+        timeView = view.findViewById(R.id.bottom_sheet_time_value)
+        sourceView = view.findViewById(R.id.bottom_sheet_source_value)
+
+    }
+
+    override fun initParams(savedInstanceState: Bundle?) {
+        //TODO
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        tracker.stopLocationUpdates()
+    }
+
+
     private fun setBottomSheetData(location: Location) {
-        with(location){
+        with(location) {
             latView.text = latitude.toString()
             longView.text = longitude.toString()
             accuracyView.text = accuracy.toString()
@@ -83,15 +183,15 @@ class MapFragment : BaseFragment(), LocationChangeCallBack, OnMapReadyCallback, 
             sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED)
         }
     }
-
-    override fun onMapReady(googleMap: GoogleMap) {
-        mMap = googleMap
-        mMap.setOnMarkerClickListener(this)
+    private fun closeBottomSheetIfNeeded() {
+        if (sheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
+            sheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        tracker = TrackerGPS(activity as Activity, this)
+
+
+    private fun initTracking() {
         if (!checkPermissions()) {
             requestPermissions()
         } else {
@@ -103,17 +203,6 @@ class MapFragment : BaseFragment(), LocationChangeCallBack, OnMapReadyCallback, 
             })
             tracker.startLocationUpdates()
         }
-    }
-
-    override fun onLocationReceived(locationResult: LocationResult) {
-        Log.d(TAG, ".onLocationReceived :{$locationResult}")
-        val location = locationResult.lastLocation
-        with(location) {
-            addLocationAndSetMarker(this)
-            addLine(this)
-            currentLocations = this
-        }
-        moveCameraToBounds()
     }
 
     private fun addLocationAndSetMarker(location: Location) {
@@ -192,76 +281,4 @@ class MapFragment : BaseFragment(), LocationChangeCallBack, OnMapReadyCallback, 
             REQUEST_PERMISSIONS_REQUEST_CODE
         )
     }
-
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        Log.i(TAG, "onRequestPermissionResult")
-        if (requestCode == REQUEST_PERMISSIONS_REQUEST_CODE) {
-            when {
-                grantResults.isEmpty() -> Log.i(TAG, "User interaction was cancelled.")
-                (grantResults[0] == PackageManager.PERMISSION_GRANTED) -> tracker.getLastKnowLocation(OnCompleteListener { task ->
-                    currentLocations = task.result!!
-                    Log.d(TAG, task.result.toString())
-                })
-                else -> {
-                    showSnackbar(
-                        R.string.permission_denied_explanation, R.string.settings,
-                        View.OnClickListener {
-                            val intent = Intent().apply {
-                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                                data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            }
-                            startActivity(intent)
-                        })
-                }
-            }
-        }
-    }
-
-    override fun getXmlResource(): Int {
-        return R.layout.map_fragment_layout
-    }
-
-    override fun initializeViews() {
-        supportMapFragment = (childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment)
-        supportMapFragment.getMapAsync(this)
-        sheetBehavior = BottomSheetBehavior.from(bottomSheetLayout)
-        sheetBehavior.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
-            override fun onStateChanged(p0: View, p1: Int) {
-                Log.d(TAG, "sheetBehavior.onStateChanged")
-            }
-
-            override fun onSlide(p0: View, p1: Float) {
-                Log.d(TAG, "sheetBehavior.onSlide")
-            }
-        })
-    }
-
-    override fun initializeModel() {
-        model = ViewModelProviders.of(this.activity!!).get(MapsViewModel::class.java)
-    }
-
-    override fun referenceView(view: View) {
-        bottomSheetLayout = view.findViewById(R.id.bottom_sheet)
-        latView = view.findViewById(R.id.bottom_sheet_lat_value)
-        longView = view.findViewById(R.id.bottom_sheet_long_value)
-        accuracyView = view.findViewById(R.id.bottom_sheet_accuracy_value)
-        timeView = view.findViewById(R.id.bottom_sheet_time_value)
-        sourceView = view.findViewById(R.id.bottom_sheet_source_value)
-    }
-
-    override fun initParams(savedInstanceState: Bundle?) {
-        //TODO
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        tracker.stopLocationUpdates()
-    }
-
 }

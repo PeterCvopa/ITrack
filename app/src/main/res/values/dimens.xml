@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="card_recycler_corner_radius">2dp</dimen>
+    <dimen name="card_recycler_elevation">2dp</dimen>
+    <dimen name="non_title_start_margin">8dp</dimen>
+    <dimen name="card_title_margin_top">8dp</dimen>
+    <dimen name="card_title_margin">16dp</dimen>
+</resources>
