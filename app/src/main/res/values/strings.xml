@@ -11,4 +11,6 @@
     <string name="bottom_sheet_time_title">Timestamp</string>
     <string name="bottom_sheet_source_title">Source</string>
     <string name="bottom_sheet_title">Marker detail</string>
+    <string name="history_menu_text">History</string>
+    <string name="stats_menu_text">Statistics</string>
 </resources>

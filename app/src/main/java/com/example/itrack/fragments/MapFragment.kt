@@ -98,8 +98,8 @@ class MapFragment : BaseFragment(), LocationChangeCallBack, OnMapReadyCallback, 
             tracker.getLastKnowLocation(OnCompleteListener { task ->
                 currentLocations = task.result?.apply {
                     addLocationAndSetMarker(this)
-                }!!
-                Log.d(TAG, task.result.toString())
+                    Log.d(TAG, this.toString())
+                }
             })
             tracker.startLocationUpdates()
         }
