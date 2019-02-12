@@ -23,4 +23,18 @@
     <string name="average_title">Avg</string>
     <string name="speed_title">Speed</string>
     <string name="total_title">Total</string>
+    <string name="confirm">Add</string>
+    <string name="cancel">Cancel</string>
+    <string name="setting_color_subtitle_text">Select line color</string>
+    <string name="setting_color_title_text">Color</string>
+    <string name="setting_linesize_title_text">Size</string>
+    <string name="setting_linesize_subtitle_text">Select line width</string>
+    <string-array name="line_size_dropdown_options">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+    </string-array>
 </resources>

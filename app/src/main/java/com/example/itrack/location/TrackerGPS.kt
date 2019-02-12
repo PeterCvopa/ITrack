@@ -42,6 +42,7 @@ class TrackerGPS(private val activity: Activity, val locationChangeCallBack: Loc
             ?.addOnSuccessListener(activity) {
                 Log.i(TAG, "All location settings are satisfied.")
                 fusedLocationClient?.let {
+                    isTracking= true
                     it.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper())
                 }
             }?.addOnFailureListener(activity) { e ->

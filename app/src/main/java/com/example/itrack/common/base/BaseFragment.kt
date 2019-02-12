@@ -5,16 +5,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModel
 import com.example.itrack.fragments.FragmentCommunicator
 
-abstract class BaseFragment : Fragment(), FragmentCommunicator{
+abstract class BaseFragment<MODEL : ViewModel> : Fragment(), FragmentCommunicator {
     private val DATA_LOADED_KEY = "DATA_LOADED_KEY"
+
+    protected lateinit var model: MODEL
 
     protected abstract fun getXmlResource(): Int
 
     protected abstract fun initializeViews()
 
-    protected abstract fun initializeModel()
+    protected abstract fun initializeModel(): MODEL
 
     protected abstract fun referenceView(view: View)
 
@@ -28,11 +31,9 @@ abstract class BaseFragment : Fragment(), FragmentCommunicator{
         }
     }
 
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        this.initializeModel()
+        model = this.initializeModel()
         this.initParams(savedInstanceState)
     }
 
@@ -50,9 +51,5 @@ abstract class BaseFragment : Fragment(), FragmentCommunicator{
             initializeViews()
         }
         return view
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
     }
 }

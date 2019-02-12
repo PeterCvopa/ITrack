@@ -6,28 +6,66 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.ViewModelProviders
 import com.example.itrack.common.base.BaseFragment
 import com.example.itrack.fragments.FragmentCommunicator
 import com.example.itrack.fragments.MapFragment
 import com.example.itrack.fragments.SettingFragment
 import com.example.itrack.fragments.StatisticsFragment
+import com.example.itrack.location.LocationChangeCallBack
+import com.example.itrack.location.TrackerCommunicator
+import com.example.itrack.location.TrackerGPS
+import com.example.itrack.viemodel.MapsViewModel
+import com.google.android.gms.location.LocationResult
 import com.google.android.material.navigation.NavigationView
 import java.io.Serializable
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommunicator {
 
-    private val CURRENT_FRAGMENT_KEY = "CURRENT_FRAGMENT_KEY"
+    companion object {
+        private val TAG = MainActivity::class.simpleName
+        private const val CURRENT_FRAGMENT_KEY = "CURRENT_FRAGMENT_KEY"
+    }
+
+    private lateinit var tracker: TrackerGPS
+
     private lateinit var navigationView: NavigationView
     private lateinit var mDrawerLayout: DrawerLayout
     private lateinit var fragmentComm: FragmentCommunicator
     private var currentFragment: FragmentType = FragmentType.MAP
     private lateinit var drawerSubTitleView: TextView
+    private lateinit var model: MapsViewModel
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.d(TAG, "oncreate")
+        Log.d(TAG, ".oncreate")
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         attachFragment(savedInstanceState)
+        initModel()
+        tracker = TrackerGPS(this, this)
+        initializeViews()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        tracker.stopLocationUpdates()
+    }
+
+    override fun startTracking() {
+        tracker.startLocationUpdates()
+    }
+
+    override fun onLocationReceived(locationResult: LocationResult) {
+        Log.d(TAG, "new location -> ${locationResult.lastLocation}")
+        model.lastLocation.value = locationResult.lastLocation
+    }
+
+    private fun initModel(){
+        model = ViewModelProviders.of(this).get(MapsViewModel::class.java)
+    }
+
+    private fun initializeViews() {
         navigationView = findViewById(R.id.navigation_main)
         mDrawerLayout = findViewById(R.id.drawer)
         drawerSubTitleView = navigationView.getHeaderView(0).findViewById(R.id.drawer_subtitle)
@@ -89,7 +127,6 @@ class MainActivity : AppCompatActivity() {
                     fragmentComm.onMainDrawerOpened()
                 }
             })
-
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -104,12 +141,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun getFragment(): BaseFragment {
+    override fun onBackPressed() {
+        if (currentFragment == FragmentType.MAP) {
+            super.onBackPressed()
+        } else {
+            setFragment(FragmentType.MAP)
+        }
+    }
+
+    private fun getFragment(): BaseFragment<*> {
         return MapFragment()
     }
 
     private fun attachFragment(savedInstanceState: Bundle?) {
-        val fragment: BaseFragment
+        val fragment: BaseFragment<*>
         if (savedInstanceState == null) {
             fragment = getFragment()
             fragmentComm = fragment
@@ -119,7 +164,7 @@ class MainActivity : AppCompatActivity() {
                 .disallowAddToBackStack()
                 .commit()
         } else {
-            fragment = supportFragmentManager.findFragmentByTag(TAG) as BaseFragment
+            fragment = supportFragmentManager.findFragmentByTag(TAG) as BaseFragment<*>
             fragmentComm = fragment
             supportFragmentManager
                 .beginTransaction()
@@ -144,19 +189,7 @@ class MainActivity : AppCompatActivity() {
         currentFragment = fragmentType
     }
 
-    companion object {
-        private val TAG = MainActivity::class.simpleName
-    }
-
-    override fun onBackPressed() {
-        if (currentFragment == FragmentType.MAP) {
-            super.onBackPressed()
-        } else {
-            setFragment(FragmentType.MAP)
-        }
-    }
-
-    enum class FragmentType(val fragment: BaseFragment, val titleResource: Int) : Serializable {
+    enum class FragmentType(val fragment: BaseFragment<*>, val titleResource: Int) : Serializable {
         MAP(MapFragment(), R.string.map_menu_text),
         STATS(StatisticsFragment(), R.string.stats_menu_text),
         SETTINGS(SettingFragment(), R.string.settings_menu_text)
