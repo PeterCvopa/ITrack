@@ -1,11 +1,19 @@
 package com.example.itrack
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.PermissionChecker
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.example.itrack.common.base.BaseFragment
 import com.example.itrack.fragments.FragmentCommunicator
@@ -14,18 +22,19 @@ import com.example.itrack.fragments.SettingFragment
 import com.example.itrack.fragments.StatisticsFragment
 import com.example.itrack.location.LocationChangeCallBack
 import com.example.itrack.location.Tracker
-import com.example.itrack.location.TrackerCommunicator
 import com.example.itrack.location.TrackerGPS
 import com.example.itrack.viemodel.MapsViewModel
 import com.google.android.gms.location.LocationResult
 import com.google.android.material.navigation.NavigationView
+import com.google.android.material.snackbar.Snackbar
 import java.io.Serializable
 
-class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommunicator {
+class MainActivity : AppCompatActivity(), LocationChangeCallBack{
 
     companion object {
         private val TAG = MainActivity::class.simpleName
         private const val CURRENT_FRAGMENT_KEY = "CURRENT_FRAGMENT_KEY"
+        private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
     }
 
     private lateinit var tracker: Tracker
@@ -46,15 +55,20 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommuni
         initModel()
         initializeViews()
         tracker = TrackerGPS(this)
+        initTracking()
+    }
+
+    private fun initTracking() {
+        if (!checkPermissions()) {
+            requestPermissions()
+        } else {
+            tracker.startLocationUpdates(this, model.setting.sampleInterval.value!!)
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        tracker.stopLocationUpdates()
-    }
-
-    override fun startTracking() {
-        tracker.startLocationUpdates(this)
+        tracker.stopLocationUpdatesIfExist()
     }
 
     override fun onLocationReceived(locationResult: LocationResult) {
@@ -64,6 +78,14 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommuni
 
     private fun initModel() {
         model = ViewModelProviders.of(this).get(MapsViewModel::class.java)
+        model.setting.sampleInterval.observe(this, createSampleRateObserver())
+    }
+
+    private fun createSampleRateObserver(): Observer<Int> {
+        return Observer {
+            Log.d(MainActivity.TAG, "sample rate observer rate: $it ")
+            tracker.startLocationUpdates(this, model.setting.sampleInterval.value!!)
+        }
     }
 
     private fun initializeViews() {
@@ -184,6 +206,77 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommuni
             .disallowAddToBackStack()
             .commit()
         currentFragment = fragmentType
+    }
+
+    /*   Permissions section*/
+
+    private fun checkPermissions() = ActivityCompat.checkSelfPermission(
+        this,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    ) == PermissionChecker.PERMISSION_GRANTED
+
+
+    private fun requestPermissions() {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        ) {
+            Log.i(MainActivity.TAG, "Displaying permission rationale to provide additional context.")
+        } else {
+            Log.i(MainActivity.TAG, "Requesting permission")
+            startLocationPermissionRequest()
+        }
+    }
+
+    private fun startLocationPermissionRequest() {
+        ActivityCompat.requestPermissions(
+            this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
+            MainActivity.REQUEST_PERMISSIONS_REQUEST_CODE
+        )
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        Log.d(MainActivity.TAG, "onRequestPermissionResult")
+        if (requestCode == MainActivity.REQUEST_PERMISSIONS_REQUEST_CODE) {
+            when {
+                grantResults.isEmpty() -> Log.i(MainActivity.TAG, "User interaction was cancelled.")
+                (grantResults[0] == PackageManager.PERMISSION_GRANTED) ->
+                    tracker.startLocationUpdates(this, model.setting.sampleInterval.value!!)
+
+                else -> {
+                    showSnackBar(
+                        R.string.permission_denied_explanation, R.string.settings,
+                        View.OnClickListener {
+                            val intent = Intent().apply {
+                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(intent)
+                        })
+                }
+            }
+        }
+    }
+
+    private fun showSnackBar(
+        snackStrId: Int,
+        actionStrId: Int = 0,
+        listener: View.OnClickListener? = null
+    ) {
+        val snackbar = Snackbar.make(
+            this.findViewById(android.R.id.content)!!, getString(snackStrId),
+            Snackbar.LENGTH_INDEFINITE
+        )
+        if (actionStrId != 0 && listener != null) {
+            snackbar.setAction(getString(actionStrId), listener)
+        }
+        snackbar.show()
     }
 
     enum class FragmentType(val fragment: BaseFragment<*>, val titleResource: Int) : Serializable {

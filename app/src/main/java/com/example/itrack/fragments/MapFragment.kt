@@ -1,29 +1,18 @@
 package com.example.itrack.fragments
 
-import android.Manifest
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.location.Location
-import android.net.Uri
-import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.app.ActivityCompat
-import androidx.core.content.PermissionChecker
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
-import com.example.itrack.BuildConfig
 import com.example.itrack.R
 import com.example.itrack.common.StringHelper
 import com.example.itrack.common.base.BaseFragment
 import com.example.itrack.common.base.LocationHelper
-import com.example.itrack.location.TrackerCommunicator
 import com.example.itrack.viemodel.MapsViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -33,13 +22,12 @@ import com.google.android.gms.maps.model.*
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.snackbar.Snackbar
 
 class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
     companion object {
         private val TAG = MapFragment::class.simpleName
-        private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
+
     }
 
     private lateinit var bottomSheetLayout: LinearLayout
@@ -60,8 +48,6 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     private lateinit var southBtn: MaterialButton
     private lateinit var westBtn: MaterialButton
 
-    private lateinit var trackerCommunicator: TrackerCommunicator
-
     private lateinit var mMap: GoogleMap
     private lateinit var options: PolylineOptions
     private var currentLocations: Location? = null
@@ -77,7 +63,6 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         mMap = googleMap
         mMap.setOnMarkerClickListener(this)
         options = PolylineOptions().width(model.setting.lineSize.toFloat()).color(model.setting.color).geodesic(true)
-        initTracking()
         startObservingLocationChange()
     }
 
@@ -88,37 +73,10 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        trackerCommunicator = context as TrackerCommunicator
     }
 
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        Log.i(TAG, "onRequestPermissionResult")
-        if (requestCode == REQUEST_PERMISSIONS_REQUEST_CODE) {
-            when {
-                grantResults.isEmpty() -> Log.i(TAG, "User interaction was cancelled.")
-                (grantResults[0] == PackageManager.PERMISSION_GRANTED) ->
-                    trackerCommunicator.startTracking()
 
-                else -> {
-                    showSnackbar(
-                        R.string.permission_denied_explanation, R.string.settings,
-                        View.OnClickListener {
-                            val intent = Intent().apply {
-                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                                data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            }
-                            startActivity(intent)
-                        })
-                }
-            }
-        }
-    }
 
     override fun getXmlResource(): Int {
         return R.layout.map_fragment_layout
@@ -191,6 +149,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
                 actionsContainer.visibility = View.GONE
                 markerDetailContainer.visibility = View.VISIBLE
             }
+            BottomSheetContainers.NONE ->{}
         }
     }
 
@@ -219,9 +178,6 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         }
     }
 
-    override fun initParams(savedInstanceState: Bundle?) {
-        //TODO remove
-    }
 
     private fun createLocationObserver(): Observer<Location> {
         return Observer {
@@ -258,16 +214,10 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         }
     }
 
-    private fun initTracking() {
-        if (!checkPermissions()) {
-            requestPermissions()
-        } else {
-            trackerCommunicator.startTracking()
-        }
-    }
+
 
     private fun drawAllStoredMarkers() {
-        //TODO  draw all marker when coming from other fragment
+
     }
 
     private fun drawAllStoredLines() {
@@ -308,39 +258,9 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
             })
     }
 
-    private fun checkPermissions() = ActivityCompat.checkSelfPermission(
-        activity as Activity,
-        Manifest.permission.ACCESS_COARSE_LOCATION
-    ) == PermissionChecker.PERMISSION_GRANTED
 
 
-    private fun requestPermissions() {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(
-                activity as Activity,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            )
-        ) {
-            Log.i(TAG, "Displaying permission rationale to provide additional context.")
-        } else {
-            Log.i(TAG, "Requesting permission")
-            startLocationPermissionRequest()
-        }
-    }
 
-    private fun showSnackbar(
-        snackStrId: Int,
-        actionStrId: Int = 0,
-        listener: View.OnClickListener? = null
-    ) {
-        val snackbar = Snackbar.make(
-            activity?.findViewById(android.R.id.content)!!, getString(snackStrId),
-            Snackbar.LENGTH_INDEFINITE
-        )
-        if (actionStrId != 0 && listener != null) {
-            snackbar.setAction(getString(actionStrId), listener)
-        }
-        snackbar.show()
-    }
 
     private fun showBottomSheetContainerByType(event: BottomSheetContainers) {
         if (event == BottomSheetContainers.NONE) {
@@ -385,12 +305,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         moveCameraToBounds()
     }
 
-    private fun startLocationPermissionRequest() {
-        ActivityCompat.requestPermissions(
-            activity as Activity, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
-            REQUEST_PERMISSIONS_REQUEST_CODE
-        )
-    }
+
 
     enum class BottomSheetContainers {
         ACTIONS, MARKER_DETAILS, NONE

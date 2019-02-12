@@ -10,6 +10,7 @@ import com.example.itrack.R
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
+import com.google.android.gms.tasks.Task
 import java.lang.Exception
 
 
@@ -18,52 +19,64 @@ class TrackerGPS(private val activity: Activity) : Tracker {
     companion object {
         private val TAG = TrackerGPS::class.simpleName
         private const val REQUEST_CHECK_SETTINGS = 0x1
-        private const val UPDATE_INTERVAL_IN_MILLISECONDS: Long = 10000
-        private const val UPDATE_INTERVAL_IN_MILLISECONDS_FAST: Long = UPDATE_INTERVAL_IN_MILLISECONDS / 2
     }
 
-    private var mLocationSettingsRequest: LocationSettingsRequest? = createLocationSettingsRequest()
-    private val locationRequest = createLocationRequest()
-    private val fusedLocationClient: FusedLocationProviderClient? =
-        LocationServices.getFusedLocationProviderClient(activity)
-    private val settingsClient: SettingsClient? = LocationServices.getSettingsClient(activity)
+    private lateinit var mLocationSettingsRequest: LocationSettingsRequest
+    private lateinit var locationRequest: LocationRequest
+    private lateinit var locationChangeCallBack: LocationChangeCallBack
+    private val fusedClient: FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(activity)
+    private val settingsClient: SettingsClient = LocationServices.getSettingsClient(activity)
     private val locationCallback: LocationCallback = createLocationCallBack()
     private var isTracking: Boolean = false
-    private lateinit var locationChangeCallBack: LocationChangeCallBack
 
     @SuppressLint("MissingPermission")
-    override fun startLocationUpdates(callBack: LocationChangeCallBack) {
-        locationChangeCallBack = callBack
-        settingsClient?.checkLocationSettings(mLocationSettingsRequest)
-            ?.addOnSuccessListener(activity) {
-                Log.i(TAG, "All location settings are satisfied.")
-                fusedLocationClient?.let {
-                    isTracking = true
-                    it.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper())
-                }
-            }?.addOnFailureListener(activity) { e ->
-                val statusCode = (e as ApiException).statusCode
-                when (statusCode) {
-                    LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
-                        onSettingNeedResolution(e)
-                    }
-                    LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
-                        onSettingFail()
-                    }
-                }
-            }
+    override fun startLocationUpdates(callBack: LocationChangeCallBack, sampleInterval: Int) {
+        stopLocationUpdatesIfExist()
+        this.locationChangeCallBack = callBack
+        this.locationRequest = this.createLocationRequest(sampleInterval.toLong())
+        this.mLocationSettingsRequest = this.createLocationSettingsRequest()!!
+        this.settingsClient
+            .checkLocationSettings(mLocationSettingsRequest)
+            .addOnSuccessListener(activity, this::onLocationSettingSuccess)
+            .addOnFailureListener(activity, this::onLocationSettingFails)
     }
 
-    override fun stopLocationUpdates() {
+    override fun stopLocationUpdatesIfExist() {
         if (!isTracking) {
-            Log.d(TAG, "stopLocationUpdates: updates never requested.")
+            Log.d(TAG, "stopLocationUpdatesIfExist: no tracking.")
             return
+        } else {
+            fusedClient
+                .removeLocationUpdates(locationCallback)
+                .addOnCompleteListener(activity, this::onRemoveLocationUpdateCompleted)
         }
-        fusedLocationClient?.removeLocationUpdates(locationCallback)
-            ?.addOnCompleteListener(activity) {
-                isTracking = false
-                Log.d(TAG, "location updates stopped .")
+    }
+
+    private fun onRemoveLocationUpdateCompleted(task: Task<Void>) {
+        isTracking = false
+        Log.d(TAG, "onRemoveLocationUpdateCompleted with result: ${task.isSuccessful}.")
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun onLocationSettingSuccess(locationSettingsResponse: LocationSettingsResponse) {
+        Log.d(TAG, ".onLocationSettingSuccess.")
+        fusedClient.let {
+            isTracking = true
+            Log.d(TAG, "added locReq i= ${locationRequest.interval} ifast= ${locationRequest.fastestInterval}")
+            it.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper())
+        }
+    }
+
+    private fun onLocationSettingFails(e: Exception) {
+        val statusCode = (e as ApiException).statusCode
+        when (statusCode) {
+            LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
+                onSettingNeedResolution(e)
             }
+            LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
+                onSettingFail()
+            }
+        }
     }
 
     private fun createLocationCallBack(): LocationCallback {
@@ -75,10 +88,10 @@ class TrackerGPS(private val activity: Activity) : Tracker {
         }
     }
 
-    private fun createLocationRequest(): LocationRequest {
+    private fun createLocationRequest(sampleInterval: Long): LocationRequest {
         return LocationRequest.create().apply {
-            interval = UPDATE_INTERVAL_IN_MILLISECONDS
-            fastestInterval = UPDATE_INTERVAL_IN_MILLISECONDS_FAST
+            interval = sampleInterval
+            fastestInterval = sampleInterval / 2
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         }
     }

@@ -30,6 +30,10 @@
     <string name="setting_linesize_title_text">Size</string>
     <string name="setting_linesize_subtitle_text">Select line width</string>
     <string name="insufficient_setting_message">Insufficient setting permission. Fix in Settings.</string>
+    <string name="setting_sample_interval_title_text">Sampling</string>
+    <string name="setting_sample_interval_subtitle_text">Select sample interval</string>
+    <string name="color_picker_dialog_tile">ColorPicker Dialog</string>
+    <string name="alt_title">Altitude</string>
     <string-array name="line_size_dropdown_options">
         <item>1</item>
         <item>2</item>

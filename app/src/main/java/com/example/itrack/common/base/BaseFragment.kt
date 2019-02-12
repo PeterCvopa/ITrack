@@ -9,7 +9,6 @@ import androidx.lifecycle.ViewModel
 import com.example.itrack.fragments.FragmentCommunicator
 
 abstract class BaseFragment<MODEL : ViewModel> : Fragment(), FragmentCommunicator {
-    private val DATA_LOADED_KEY = "DATA_LOADED_KEY"
 
     protected lateinit var model: MODEL
 
@@ -21,7 +20,6 @@ abstract class BaseFragment<MODEL : ViewModel> : Fragment(), FragmentCommunicato
 
     protected abstract fun referenceView(view: View)
 
-    protected abstract fun initParams(savedInstanceState: Bundle?)
 
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -34,12 +32,7 @@ abstract class BaseFragment<MODEL : ViewModel> : Fragment(), FragmentCommunicato
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         model = this.initializeModel()
-        this.initParams(savedInstanceState)
-    }
-
-    override fun onAttachFragment(childFragment: Fragment) {
-        super.onAttachFragment(childFragment)
-    }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
