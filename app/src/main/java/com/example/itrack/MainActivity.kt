@@ -13,6 +13,7 @@ import com.example.itrack.fragments.MapFragment
 import com.example.itrack.fragments.SettingFragment
 import com.example.itrack.fragments.StatisticsFragment
 import com.example.itrack.location.LocationChangeCallBack
+import com.example.itrack.location.Tracker
 import com.example.itrack.location.TrackerCommunicator
 import com.example.itrack.location.TrackerGPS
 import com.example.itrack.viemodel.MapsViewModel
@@ -27,7 +28,7 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommuni
         private const val CURRENT_FRAGMENT_KEY = "CURRENT_FRAGMENT_KEY"
     }
 
-    private lateinit var tracker: TrackerGPS
+    private lateinit var tracker: Tracker
 
     private lateinit var navigationView: NavigationView
     private lateinit var mDrawerLayout: DrawerLayout
@@ -43,8 +44,8 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommuni
         setContentView(R.layout.activity_main)
         attachFragment(savedInstanceState)
         initModel()
-        tracker = TrackerGPS(this, this)
         initializeViews()
+        tracker = TrackerGPS(this)
     }
 
     override fun onDestroy() {
@@ -53,7 +54,7 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommuni
     }
 
     override fun startTracking() {
-        tracker.startLocationUpdates()
+        tracker.startLocationUpdates(this)
     }
 
     override fun onLocationReceived(locationResult: LocationResult) {
@@ -61,7 +62,7 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommuni
         model.lastLocation.value = locationResult.lastLocation
     }
 
-    private fun initModel(){
+    private fun initModel() {
         model = ViewModelProviders.of(this).get(MapsViewModel::class.java)
     }
 
@@ -78,7 +79,6 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommuni
                         drawerSubTitleView.setText(this.titleResource)
                     }
                     mDrawerLayout.closeDrawers()
-                    Log.d(TAG, "maps_item_clicked")
                     true
                 }
                 R.id.nav_stats -> {
@@ -88,7 +88,6 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommuni
                     }
 
                     mDrawerLayout.closeDrawers()
-                    Log.d(TAG, "stats_item_clicked")
                     true
                 }
                 R.id.nav_settings -> {
@@ -97,12 +96,10 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, TrackerCommuni
                         drawerSubTitleView.setText(this.titleResource)
                     }
                     mDrawerLayout.closeDrawers()
-                    Log.d(TAG, "setting_item_clicked")
                     true
                 }
                 R.id.nav_history -> {
                     //TODO may show stats in bottom sheet   old-> setFragmentIfNeeded(FragmentType.HISTORY)
-                    Log.d(TAG, "history_item_clicked")
                     mDrawerLayout.closeDrawers()
                     true
                 }

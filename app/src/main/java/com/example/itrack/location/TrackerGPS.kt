@@ -3,22 +3,20 @@ package com.example.itrack.location
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.IntentSender
-import android.location.Location
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import com.example.itrack.R
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
-import com.google.android.gms.tasks.OnCompleteListener
 import java.lang.Exception
 
 
-class TrackerGPS(private val activity: Activity, val locationChangeCallBack: LocationChangeCallBack) {
+class TrackerGPS(private val activity: Activity) : Tracker {
 
     companion object {
         private val TAG = TrackerGPS::class.simpleName
-        private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
         private const val REQUEST_CHECK_SETTINGS = 0x1
         private const val UPDATE_INTERVAL_IN_MILLISECONDS: Long = 10000
         private const val UPDATE_INTERVAL_IN_MILLISECONDS_FAST: Long = UPDATE_INTERVAL_IN_MILLISECONDS / 2
@@ -26,23 +24,21 @@ class TrackerGPS(private val activity: Activity, val locationChangeCallBack: Loc
 
     private var mLocationSettingsRequest: LocationSettingsRequest? = createLocationSettingsRequest()
     private val locationRequest = createLocationRequest()
-    private val fusedLocationClient: FusedLocationProviderClient? = LocationServices.getFusedLocationProviderClient(activity)
+    private val fusedLocationClient: FusedLocationProviderClient? =
+        LocationServices.getFusedLocationProviderClient(activity)
     private val settingsClient: SettingsClient? = LocationServices.getSettingsClient(activity)
     private val locationCallback: LocationCallback = createLocationCallBack()
     private var isTracking: Boolean = false
+    private lateinit var locationChangeCallBack: LocationChangeCallBack
 
     @SuppressLint("MissingPermission")
-    fun getLastKnowLocation(listener: OnCompleteListener<Location>) {
-        fusedLocationClient?.let { it.lastLocation.addOnCompleteListener(activity, listener) }
-    }
-
-    @SuppressLint("MissingPermission")
-    fun startLocationUpdates() {
+    override fun startLocationUpdates(callBack: LocationChangeCallBack) {
+        locationChangeCallBack = callBack
         settingsClient?.checkLocationSettings(mLocationSettingsRequest)
             ?.addOnSuccessListener(activity) {
                 Log.i(TAG, "All location settings are satisfied.")
                 fusedLocationClient?.let {
-                    isTracking= true
+                    isTracking = true
                     it.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper())
                 }
             }?.addOnFailureListener(activity) { e ->
@@ -55,6 +51,18 @@ class TrackerGPS(private val activity: Activity, val locationChangeCallBack: Loc
                         onSettingFail()
                     }
                 }
+            }
+    }
+
+    override fun stopLocationUpdates() {
+        if (!isTracking) {
+            Log.d(TAG, "stopLocationUpdates: updates never requested.")
+            return
+        }
+        fusedLocationClient?.removeLocationUpdates(locationCallback)
+            ?.addOnCompleteListener(activity) {
+                isTracking = false
+                Log.d(TAG, "location updates stopped .")
             }
     }
 
@@ -87,26 +95,14 @@ class TrackerGPS(private val activity: Activity, val locationChangeCallBack: Loc
             val rae = e as ResolvableApiException
             rae.startResolutionForResult(activity, REQUEST_CHECK_SETTINGS)
         } catch (sie: IntentSender.SendIntentException) {
-            Log.i(TAG, "PendingIntent unable to execute request.")
+            Log.e(TAG, sie.message)
         }
     }
 
     private fun onSettingFail() {
-        val errorMessage = "Insufficient setting permission.Fix in Settings."
+        val errorMessage = activity.resources.getString(R.string.insufficient_setting_message)
         Log.e(TAG, errorMessage)
         Toast.makeText(activity, errorMessage, Toast.LENGTH_LONG).show()
         isTracking = false
-    }
-
-    fun stopLocationUpdates() {
-        if (!isTracking) {
-            Log.d(TAG, "stopLocationUpdates: updates never requested.")
-            return
-        }
-        fusedLocationClient?.removeLocationUpdates(locationCallback)
-            ?.addOnCompleteListener(activity) {
-                isTracking = false
-                Log.d(TAG, "location updates stopped .")
-            }
     }
 }

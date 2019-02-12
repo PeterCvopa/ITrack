@@ -13,13 +13,16 @@ import android.util.Log
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.PermissionChecker
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.example.itrack.BuildConfig
 import com.example.itrack.R
+import com.example.itrack.common.StringHelper
 import com.example.itrack.common.base.BaseFragment
+import com.example.itrack.common.base.LocationHelper
 import com.example.itrack.location.TrackerCommunicator
 import com.example.itrack.viemodel.MapsViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -28,8 +31,9 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
-import java.lang.IllegalStateException
 
 class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
@@ -46,6 +50,16 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     private lateinit var accuracyView: TextView
     private lateinit var timeView: TextView
     private lateinit var sourceView: TextView
+    private lateinit var fabAction: FloatingActionButton
+    private lateinit var fabLocation: FloatingActionButton
+    private lateinit var markerDetailContainer: LinearLayout
+    private lateinit var actionsContainer: ConstraintLayout
+    private var shownBottomSheetContainer: BottomSheetContainers = BottomSheetContainers.NONE
+    private lateinit var northBtn: MaterialButton
+    private lateinit var eastBtn: MaterialButton
+    private lateinit var southBtn: MaterialButton
+    private lateinit var westBtn: MaterialButton
+
     private lateinit var trackerCommunicator: TrackerCommunicator
 
     private lateinit var mMap: GoogleMap
@@ -53,17 +67,10 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     private var currentLocations: Location? = null
     private lateinit var locationChangeObserver: Observer<Location>
 
-    override fun onMarkerClick(marker: Marker?): Boolean {
-        this.toggleBottomSheet()
-        val index = marker?.tag as Int
-        //TODO change icon  marker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.baseline_place_black_s))
-        this.setBottomSheetData(model.locationsList[index]) // TODO
-        return true
-    }
 
     override fun onMainDrawerOpened() {
         Log.d(TAG, ".onMainDrawerOpened ")
-        closeBottomSheetIfNeeded()
+        showBottomSheetContainerByType(BottomSheetContainers.NONE)
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -72,10 +79,6 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         options = PolylineOptions().width(model.setting.lineSize.toFloat()).color(model.setting.color).geodesic(true)
         initTracking()
         startObservingLocationChange()
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState) //TODO remove?
     }
 
     override fun onDestroy() {
@@ -88,14 +91,6 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         trackerCommunicator = context as TrackerCommunicator
     }
 
-    private fun newLocationReceived(location: Location) {
-        with(location) {
-            addSetMarker(this)
-            addLine(this)
-            currentLocations = this
-        }
-
-    }
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -137,10 +132,66 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
             override fun onStateChanged(p0: View, p1: Int) {
                 Log.d(TAG, "sheetBehavior.onStateChanged")
             }
+
             override fun onSlide(p0: View, p1: Float) {
                 Log.d(TAG, "sheetBehavior.onSlide")
             }
         })
+        fabAction.setOnClickListener(this::onActionFabClicked)
+        fabLocation.setOnClickListener(this::onLocationFabClicked)
+
+        northBtn.setOnClickListener(this::onMostNorthButtonCliked)
+        southBtn.setOnClickListener(this::onMostSouthButtonCliked)
+        westBtn.setOnClickListener(this::onWestSouthButtonCliked)
+        eastBtn.setOnClickListener(this::onEastSouthButtonCliked)
+    }
+
+    private fun onMostNorthButtonCliked(view: View) {
+        val mostNorthLocation = LocationHelper.mostNorth(model.locationsList)
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+    }
+
+    private fun onMostSouthButtonCliked(view: View) {
+        val mostNorthLocation = LocationHelper.mostSouth(model.locationsList)
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+    }
+
+    private fun onWestSouthButtonCliked(view: View) {
+        val mostNorthLocation = LocationHelper.mostWest(model.locationsList)
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+    }
+
+    private fun onEastSouthButtonCliked(view: View) {
+        val mostNorthLocation = LocationHelper.mostEast(model.locationsList)
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+    }
+
+    override fun onMarkerClick(marker: Marker?): Boolean {
+        val index = marker?.tag as Int
+        this.showBottomSheetContainerByType(BottomSheetContainers.MARKER_DETAILS)
+        this.setBottomSheetData(model.locationsList[index])
+        return true
+    }
+
+    private fun newLocationReceived(location: Location) {
+        with(location) {
+            addSetMarker(this)
+            addLine(this)
+            currentLocations = this
+        }
+    }
+
+    private fun bottomSheetContainerVisibility(container: BottomSheetContainers) {
+        when (container) {
+            BottomSheetContainers.ACTIONS -> {
+                actionsContainer.visibility = View.VISIBLE
+                markerDetailContainer.visibility = View.GONE
+            }
+            BottomSheetContainers.MARKER_DETAILS -> {
+                actionsContainer.visibility = View.GONE
+                markerDetailContainer.visibility = View.VISIBLE
+            }
+        }
     }
 
     override fun initializeModel(): MapsViewModel {
@@ -157,6 +208,14 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
             accuracyView = findViewById(R.id.bottom_sheet_accuracy_value)
             timeView = findViewById(R.id.bottom_sheet_time_value)
             sourceView = findViewById(R.id.bottom_sheet_source_value)
+            fabAction = findViewById(R.id.action_fab)
+            fabLocation = findViewById(R.id.location_fab)
+            markerDetailContainer = findViewById(R.id.marker_detail_container)
+            actionsContainer = findViewById(R.id.actions_container)
+            northBtn = findViewById(R.id.north_btn)
+            eastBtn = findViewById(R.id.east_button)
+            southBtn = findViewById(R.id.south_button)
+            westBtn = findViewById(R.id.west_button)
         }
     }
 
@@ -182,16 +241,14 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
             latView.text = latitude.toString()
             longView.text = longitude.toString()
             accuracyView.text = accuracy.toString()
-            timeView.text = time.toString()
+            timeView.text = StringHelper.dateToText(time)
             sourceView.text = "GPS" //TODO  store type of source
         }
     }
 
-    private fun toggleBottomSheet() {
+    private fun openBottomSheetIfNeeded() {
         if (sheetBehavior.state != BottomSheetBehavior.STATE_EXPANDED) {
-            sheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED)
-        } else {
-            sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED)
+            sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
         }
     }
 
@@ -224,7 +281,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
                 .let { marker ->
                     marker.tag = model.locationsList.size - 1
                 }
-            map.moveCamera(CameraUpdateFactory.newLatLng(current))
+
         }
     }
 
@@ -285,10 +342,57 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         snackbar.show()
     }
 
+    private fun showBottomSheetContainerByType(event: BottomSheetContainers) {
+        if (event == BottomSheetContainers.NONE) {
+            closeBottomSheetIfNeeded()
+            shownBottomSheetContainer = event
+            return
+        }
+        if (event == BottomSheetContainers.MARKER_DETAILS) {
+            shownBottomSheetContainer = when (shownBottomSheetContainer) {
+                BottomSheetContainers.MARKER_DETAILS -> {
+                    closeBottomSheetIfNeeded()
+                    BottomSheetContainers.NONE
+                }
+                BottomSheetContainers.ACTIONS, BottomSheetContainers.NONE -> {
+                    closeBottomSheetIfNeeded()
+                    bottomSheetContainerVisibility(BottomSheetContainers.MARKER_DETAILS)
+                    openBottomSheetIfNeeded()
+                    BottomSheetContainers.MARKER_DETAILS
+                }
+            }
+        } else {
+            shownBottomSheetContainer = when (shownBottomSheetContainer) {
+                BottomSheetContainers.ACTIONS -> {
+                    closeBottomSheetIfNeeded()
+                    BottomSheetContainers.NONE
+                }
+                BottomSheetContainers.MARKER_DETAILS, BottomSheetContainers.NONE -> {
+                    closeBottomSheetIfNeeded()
+                    bottomSheetContainerVisibility(BottomSheetContainers.ACTIONS)
+                    openBottomSheetIfNeeded()
+                    BottomSheetContainers.ACTIONS
+                }
+            }
+        }
+    }
+
+    private fun onActionFabClicked(view: View) {
+        showBottomSheetContainerByType(BottomSheetContainers.ACTIONS)
+    }
+
+    private fun onLocationFabClicked(view: View) {
+        moveCameraToBounds()
+    }
+
     private fun startLocationPermissionRequest() {
         ActivityCompat.requestPermissions(
             activity as Activity, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
             REQUEST_PERMISSIONS_REQUEST_CODE
         )
+    }
+
+    enum class BottomSheetContainers {
+        ACTIONS, MARKER_DETAILS, NONE
     }
 }

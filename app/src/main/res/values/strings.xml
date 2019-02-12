@@ -29,6 +29,7 @@
     <string name="setting_color_title_text">Color</string>
     <string name="setting_linesize_title_text">Size</string>
     <string name="setting_linesize_subtitle_text">Select line width</string>
+    <string name="insufficient_setting_message">Insufficient setting permission. Fix in Settings.</string>
     <string-array name="line_size_dropdown_options">
         <item>1</item>
         <item>2</item>
