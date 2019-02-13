@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack{
 
     override fun onLocationReceived(locationResult: LocationResult) {
         Log.d(TAG, "new location -> ${locationResult.lastLocation}")
-        model.lastLocation.value = locationResult.lastLocation
+        model.currentLocation.value = locationResult.lastLocation
     }
 
     private fun initModel() {
@@ -117,11 +117,6 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack{
                         setFragmentIfNeeded(this)
                         drawerSubTitleView.setText(this.titleResource)
                     }
-                    mDrawerLayout.closeDrawers()
-                    true
-                }
-                R.id.nav_history -> {
-                    //TODO may show stats in bottom sheet   old-> setFragmentIfNeeded(FragmentType.HISTORY)
                     mDrawerLayout.closeDrawers()
                     true
                 }
@@ -269,14 +264,14 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack{
         actionStrId: Int = 0,
         listener: View.OnClickListener? = null
     ) {
-        val snackbar = Snackbar.make(
+        val snackBar = Snackbar.make(
             this.findViewById(android.R.id.content)!!, getString(snackStrId),
             Snackbar.LENGTH_INDEFINITE
         )
         if (actionStrId != 0 && listener != null) {
-            snackbar.setAction(getString(actionStrId), listener)
+            snackBar.setAction(getString(actionStrId), listener)
         }
-        snackbar.show()
+        snackBar.show()
     }
 
     enum class FragmentType(val fragment: BaseFragment<*>, val titleResource: Int) : Serializable {

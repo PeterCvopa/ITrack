@@ -1,7 +1,7 @@
-package com.example.itrack.common.base
+package com.example.itrack.common
 
 import android.location.Location
-import com.example.itrack.location.Statistics
+import com.example.itrack.location.LocationStatisticsData
 import com.google.android.gms.maps.model.LatLng
 import java.math.BigDecimal
 
@@ -43,11 +43,11 @@ class LocationHelper {
             return LatLng(location.latitude, location.longitude)
         }
 
-        fun distanceBetweenTwoLocations(v1: Location?, v2: Location?): BigDecimal {
-            if (v1 == null || v2 == null) return BigDecimal.ZERO
+        fun distanceBetweenTwoLocations(v1: Location?, v2: Location?): Double {
+            if (v1 == null || v2 == null) return 0.0
 
             if (v1.latitude == v2.latitude && v1.longitude == v2.longitude) {
-                return BigDecimal.ZERO
+                return 0.0
             } else {
                 val theta = v1.longitude - v2.longitude
                 var dist =
@@ -61,13 +61,13 @@ class LocationHelper {
                 dist = Math.acos(dist)
                 dist = Math.toDegrees(dist)
                 dist *= 60.0 * 1.1515 * 1.609344 * 1000
-                return BigDecimal(dist)
+                return dist
             }
         }
 
-        fun getStatisticsData(locations: List<Location>): Statistics {
+        fun getStatisticsData(locations: List<Location>): LocationStatisticsData {
             if (locations.isEmpty()) {
-                return Statistics()
+                return LocationStatisticsData()
             }
             var maxSpeed = 0F
             var minSpeed = 0F
@@ -75,7 +75,7 @@ class LocationHelper {
             var maxAlt = 0.0
             var minAlt = 0.0
             var altSum = 0.0
-            var totalDistance = BigDecimal.ZERO
+            var totalDistance = 0.0
             var oldLocation: Location? = null
             locations.forEach {
                 if (oldLocation == null) {
@@ -85,7 +85,7 @@ class LocationHelper {
                     maxAlt = it.altitude
                     minAlt = it.altitude
                 }
-                totalDistance = totalDistance.add(distanceBetweenTwoLocations(oldLocation, it))
+                totalDistance += distanceBetweenTwoLocations(oldLocation, it)
                 oldLocation = it
                 if (it.speed > maxSpeed) {
                     maxSpeed = it.speed
@@ -103,11 +103,11 @@ class LocationHelper {
                 }
                 altSum += it.altitude
             }
-            return Statistics(
+            return LocationStatisticsData(
                 maxSpeed,
                 minSpeed,
                 speedSum / locations.size,
-                totalDistance,
+                BigDecimal(totalDistance),
                 maxAlt,
                 minAlt,
                 altSum / locations.size

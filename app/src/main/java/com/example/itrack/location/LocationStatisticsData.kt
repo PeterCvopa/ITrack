@@ -2,7 +2,7 @@ package com.example.itrack.location
 
 import java.math.BigDecimal
 
-data class Statistics(
+data class LocationStatisticsData(
     val maxSpeed: Float = 0f,
     val minSpeed: Float = 0f,
     val avgSpeed: Float = 0f,

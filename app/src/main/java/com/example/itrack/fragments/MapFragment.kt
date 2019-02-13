@@ -1,6 +1,5 @@
 package com.example.itrack.fragments
 
-import android.content.Context
 import android.location.Location
 import android.util.Log
 import android.view.View
@@ -10,9 +9,11 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.example.itrack.R
+import com.example.itrack.common.LocationHelper
 import com.example.itrack.common.StringHelper
 import com.example.itrack.common.base.BaseFragment
-import com.example.itrack.common.base.LocationHelper
+import com.example.itrack.location.LocationValidator
+import com.example.itrack.location.MinimalDistancePrecondition
 import com.example.itrack.viemodel.MapsViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -50,9 +51,13 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
 
     private lateinit var mMap: GoogleMap
     private lateinit var options: PolylineOptions
-    private var currentLocations: Location? = null
+    private var currentLocation: Location? = null
     private lateinit var locationChangeObserver: Observer<Location>
+    private val locationValidator: LocationValidator = LocationValidator()
 
+    init {
+        locationValidator.addPrecondition(MinimalDistancePrecondition())
+    }
 
     override fun onMainDrawerOpened() {
         Log.d(TAG, ".onMainDrawerOpened ")
@@ -63,20 +68,14 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         mMap = googleMap
         mMap.setOnMarkerClickListener(this)
         options = PolylineOptions().width(model.setting.lineSize.toFloat()).color(model.setting.color).geodesic(true)
+        drawAllLocations()
         startObservingLocationChange()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        model.lastLocation.removeObserver(locationChangeObserver)
+        model.currentLocation.removeObserver(locationChangeObserver)
     }
-
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-    }
-
-
-
 
     override fun getXmlResource(): Int {
         return R.layout.map_fragment_layout
@@ -97,7 +96,6 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         })
         fabAction.setOnClickListener(this::onActionFabClicked)
         fabLocation.setOnClickListener(this::onLocationFabClicked)
-
         northBtn.setOnClickListener(this::onMostNorthButtonCliked)
         southBtn.setOnClickListener(this::onMostSouthButtonCliked)
         westBtn.setOnClickListener(this::onWestSouthButtonCliked)
@@ -105,23 +103,31 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     }
 
     private fun onMostNorthButtonCliked(view: View) {
-        val mostNorthLocation = LocationHelper.mostNorth(model.locationsList)
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        if (!model.locationsList.isEmpty()) {
+            val mostNorthLocation = LocationHelper.mostNorth(model.locationsList)
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        }
     }
 
     private fun onMostSouthButtonCliked(view: View) {
-        val mostNorthLocation = LocationHelper.mostSouth(model.locationsList)
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        if (!model.locationsList.isEmpty()) {
+            val mostNorthLocation = LocationHelper.mostSouth(model.locationsList)
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        }
     }
 
     private fun onWestSouthButtonCliked(view: View) {
-        val mostNorthLocation = LocationHelper.mostWest(model.locationsList)
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        if (!model.locationsList.isEmpty()) {
+            val mostNorthLocation = LocationHelper.mostWest(model.locationsList)
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        }
     }
 
     private fun onEastSouthButtonCliked(view: View) {
-        val mostNorthLocation = LocationHelper.mostEast(model.locationsList)
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        if (!model.locationsList.isEmpty()) {
+            val mostNorthLocation = LocationHelper.mostEast(model.locationsList)
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        }
     }
 
     override fun onMarkerClick(marker: Marker?): Boolean {
@@ -129,28 +135,6 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         this.showBottomSheetContainerByType(BottomSheetContainers.MARKER_DETAILS)
         this.setBottomSheetData(model.locationsList[index])
         return true
-    }
-
-    private fun newLocationReceived(location: Location) {
-        with(location) {
-            addSetMarker(this)
-            addLine(this)
-            currentLocations = this
-        }
-    }
-
-    private fun bottomSheetContainerVisibility(container: BottomSheetContainers) {
-        when (container) {
-            BottomSheetContainers.ACTIONS -> {
-                actionsContainer.visibility = View.VISIBLE
-                markerDetailContainer.visibility = View.GONE
-            }
-            BottomSheetContainers.MARKER_DETAILS -> {
-                actionsContainer.visibility = View.GONE
-                markerDetailContainer.visibility = View.VISIBLE
-            }
-            BottomSheetContainers.NONE ->{}
-        }
     }
 
     override fun initializeModel(): MapsViewModel {
@@ -178,18 +162,45 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         }
     }
 
+    private fun drawLocation(location: Location) {
+        with(location) {
+            addSetMarker(this)
+            addLine(this)
+            currentLocation = this
+        }
+    }
+
+    private fun bottomSheetContainerVisibility(container: BottomSheetContainers) {
+        when (container) {
+            BottomSheetContainers.ACTIONS -> {
+                actionsContainer.visibility = View.VISIBLE
+                markerDetailContainer.visibility = View.GONE
+            }
+            BottomSheetContainers.MARKER_DETAILS -> {
+                actionsContainer.visibility = View.GONE
+                markerDetailContainer.visibility = View.VISIBLE
+            }
+            BottomSheetContainers.NONE -> {
+            }
+        }
+    }
 
     private fun createLocationObserver(): Observer<Location> {
         return Observer {
-            model.locationsList.add(it)
-            Log.d(TAG, "${model.locationsList.size} locations stored")
-            newLocationReceived(it)
+            var oldLocation: Location? = currentLocation
+            if (oldLocation == null || locationValidator.validate(oldLocation, it)) {
+                model.locationsList.add(it)
+                drawLocation(it)
+                Log.d(TAG, "${model.locationsList.size} locations stored")
+            } else {
+                Log.d(TAG, "new location location is no valid ")
+            }
         }
     }
 
     private fun startObservingLocationChange() {
         locationChangeObserver = createLocationObserver()
-        model.lastLocation.observe(this, locationChangeObserver)
+        model.currentLocation.observe(this, locationChangeObserver)
     }
 
     private fun setBottomSheetData(location: Location) {
@@ -214,23 +225,19 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         }
     }
 
-
-
-    private fun drawAllStoredMarkers() {
-
-    }
-
-    private fun drawAllStoredLines() {
-
+    private fun drawAllLocations() {
+        model.locationsList.forEach {
+            drawLocation(it)
+        }
     }
 
     private fun addSetMarker(location: Location) {
         val current = LatLng(location.latitude, location.longitude)
         mMap.let { map ->
             map.addMarker(MarkerOptions().position(current).title("Marker").icon(BitmapDescriptorFactory.fromResource(R.drawable.baseline_place_black)))
-                .let { marker ->
-                    marker.tag = model.locationsList.size - 1
-                }
+                    .let { marker ->
+                        marker.tag = model.locationsList.size - 1
+                    }
 
         }
     }
@@ -243,23 +250,23 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     private fun moveCameraToBounds() {
         val builder = LatLngBounds.Builder()
         val mostCurrentPositions = model.locationsList.takeLast(10)
-        mostCurrentPositions.forEach {
-            builder.include(LatLng(it.latitude, it.longitude))
+        if (!mostCurrentPositions.isEmpty()) {
+            mostCurrentPositions.forEach {
+                builder.include(LatLng(it.latitude, it.longitude))
+            }
+
+            mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100),
+                    object : GoogleMap.CancelableCallback {
+                        override fun onFinish() {
+                            Log.d(TAG, ".CancelableCallback.onFinish ")
+                        }
+
+                        override fun onCancel() {
+                            Log.d(TAG, ".CancelableCallback.onCancel ")
+                        }
+                    })
         }
-        mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100),
-            object : GoogleMap.CancelableCallback {
-                override fun onFinish() {
-                    Log.d(TAG, ".CancelableCallback.onFinish ")
-                }
-
-                override fun onCancel() {
-                    Log.d(TAG, ".CancelableCallback.onCancel ")
-                }
-            })
     }
-
-
-
 
 
     private fun showBottomSheetContainerByType(event: BottomSheetContainers) {
@@ -304,8 +311,6 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     private fun onLocationFabClicked(view: View) {
         moveCameraToBounds()
     }
-
-
 
     enum class BottomSheetContainers {
         ACTIONS, MARKER_DETAILS, NONE

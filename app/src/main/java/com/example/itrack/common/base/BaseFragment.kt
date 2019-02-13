@@ -21,18 +21,10 @@ abstract class BaseFragment<MODEL : ViewModel> : Fragment(), FragmentCommunicato
     protected abstract fun referenceView(view: View)
 
 
-
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
-        if (savedInstanceState != null) {
-            //TODO
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         model = this.initializeModel()
-        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModelProviders
 import com.example.itrack.R
 import com.example.itrack.common.StringHelper
 import com.example.itrack.common.base.BaseFragment
-import com.example.itrack.common.base.LocationHelper
+import com.example.itrack.common.LocationHelper
 import com.example.itrack.viemodel.MapsViewModel
 
 class StatisticsFragment : BaseFragment<MapsViewModel>() {
