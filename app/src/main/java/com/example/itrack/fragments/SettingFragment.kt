@@ -15,6 +15,8 @@ import com.skydoves.colorpickerpreference.ColorPickerDialog
 
 
 class SettingFragment : BaseFragment<MapsViewModel>() {
+    override fun onStatisticsItemMenuClicked() {
+    }
 
     companion object {
         private val TAG = SettingFragment::class.simpleName

@@ -16,6 +16,8 @@
 
     <include layout="@layout/bottom_sheet_layout" />
 
+    <include layout="@layout/statistics_bottom_sheet" />
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/action_fab"
         android:layout_width="wrap_content"

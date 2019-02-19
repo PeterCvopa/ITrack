@@ -29,7 +29,7 @@ import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
 import java.io.Serializable
 
-class MainActivity : AppCompatActivity(), LocationChangeCallBack{
+class MainActivity : AppCompatActivity(), LocationChangeCallBack {
 
     companion object {
         private val TAG = MainActivity::class.simpleName
@@ -76,6 +76,55 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack{
         model.currentLocation.value = locationResult.lastLocation
     }
 
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putSerializable(CURRENT_FRAGMENT_KEY, currentFragment)
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle?) {
+        super.onRestoreInstanceState(savedInstanceState)
+        savedInstanceState?.let {
+            currentFragment = it.getSerializable(CURRENT_FRAGMENT_KEY) as FragmentType
+        }
+    }
+
+    override fun onBackPressed() {
+        if (currentFragment == FragmentType.MAP) {
+            super.onBackPressed()
+        } else {
+            setFragment(FragmentType.MAP)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+            requestCode: Int,
+            permissions: Array<String>,
+            grantResults: IntArray
+    ) {
+        Log.d(MainActivity.TAG, "onRequestPermissionResult")
+        if (requestCode == MainActivity.REQUEST_PERMISSIONS_REQUEST_CODE) {
+            when {
+                grantResults.isEmpty() -> Log.i(MainActivity.TAG, "User interaction was cancelled.")
+                (grantResults[0] == PackageManager.PERMISSION_GRANTED) ->
+                    tracker.startLocationUpdates(this, model.setting.sampleInterval.value!!)
+
+                else -> {
+                    showSnackBar(
+                            R.string.permission_denied_explanation, R.string.settings,
+                            View.OnClickListener {
+                                val intent = Intent().apply {
+                                    action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                    data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                }
+                                startActivity(intent)
+                            })
+                }
+            }
+        }
+    }
+
     private fun initModel() {
         model = ViewModelProviders.of(this).get(MapsViewModel::class.java)
         model.setting.sampleInterval.observe(this, createSampleRateObserver())
@@ -120,47 +169,31 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack{
                     mDrawerLayout.closeDrawers()
                     true
                 }
+                R.id.nav_history ->{
+                    fragmentComm.onStatisticsItemMenuClicked()
+                    true
+                }
                 else -> throw IllegalArgumentException("Does not know menu item with id: ${it.itemId}")
             }
         }
         mDrawerLayout.addDrawerListener(
-            object : DrawerLayout.DrawerListener {
-                override fun onDrawerStateChanged(newState: Int) {
-                    //do nothing
-                }
+                object : DrawerLayout.DrawerListener {
+                    override fun onDrawerStateChanged(newState: Int) {
+                        //do nothing
+                    }
 
-                override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
-                    //do nothing
-                }
+                    override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+                        //do nothing
+                    }
 
-                override fun onDrawerClosed(drawerView: View) {
-                    //do nothing
-                }
+                    override fun onDrawerClosed(drawerView: View) {
+                        //do nothing
+                    }
 
-                override fun onDrawerOpened(drawerView: View) {
-                    fragmentComm.onMainDrawerOpened()
-                }
-            })
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putSerializable(CURRENT_FRAGMENT_KEY, currentFragment)
-    }
-
-    override fun onRestoreInstanceState(savedInstanceState: Bundle?) {
-        super.onRestoreInstanceState(savedInstanceState)
-        savedInstanceState?.let {
-            currentFragment = it.getSerializable(CURRENT_FRAGMENT_KEY) as FragmentType
-        }
-    }
-
-    override fun onBackPressed() {
-        if (currentFragment == FragmentType.MAP) {
-            super.onBackPressed()
-        } else {
-            setFragment(FragmentType.MAP)
-        }
+                    override fun onDrawerOpened(drawerView: View) {
+                        fragmentComm.onMainDrawerOpened()
+                    }
+                })
     }
 
     private fun getFragment(): BaseFragment<*> {
@@ -173,18 +206,18 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack{
             fragment = getFragment()
             fragmentComm = fragment
             supportFragmentManager
-                .beginTransaction()
-                .replace(R.id.main_container, fragment, TAG)
-                .disallowAddToBackStack()
-                .commit()
+                    .beginTransaction()
+                    .replace(R.id.main_container, fragment, TAG)
+                    .disallowAddToBackStack()
+                    .commit()
         } else {
             fragment = supportFragmentManager.findFragmentByTag(TAG) as BaseFragment<*>
             fragmentComm = fragment
             supportFragmentManager
-                .beginTransaction()
-                .attach(fragment)
-                .disallowAddToBackStack()
-                .commit()
+                    .beginTransaction()
+                    .attach(fragment)
+                    .disallowAddToBackStack()
+                    .commit()
         }
     }
 
@@ -196,26 +229,26 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack{
 
     private fun setFragment(fragmentType: FragmentType) {
         supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.main_container, fragmentType.fragment, TAG)
-            .disallowAddToBackStack()
-            .commit()
+                .beginTransaction()
+                .replace(R.id.main_container, fragmentType.fragment, TAG)
+                .disallowAddToBackStack()
+                .commit()
         currentFragment = fragmentType
     }
 
     /*   Permissions section*/
 
     private fun checkPermissions() = ActivityCompat.checkSelfPermission(
-        this,
-        Manifest.permission.ACCESS_COARSE_LOCATION
+            this,
+            Manifest.permission.ACCESS_COARSE_LOCATION
     ) == PermissionChecker.PERMISSION_GRANTED
 
 
     private fun requestPermissions() {
         if (ActivityCompat.shouldShowRequestPermissionRationale(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            )
+                        this,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                )
         ) {
             Log.i(MainActivity.TAG, "Displaying permission rationale to provide additional context.")
         } else {
@@ -226,47 +259,19 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack{
 
     private fun startLocationPermissionRequest() {
         ActivityCompat.requestPermissions(
-            this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
-            MainActivity.REQUEST_PERMISSIONS_REQUEST_CODE
+                this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
+                MainActivity.REQUEST_PERMISSIONS_REQUEST_CODE
         )
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        Log.d(MainActivity.TAG, "onRequestPermissionResult")
-        if (requestCode == MainActivity.REQUEST_PERMISSIONS_REQUEST_CODE) {
-            when {
-                grantResults.isEmpty() -> Log.i(MainActivity.TAG, "User interaction was cancelled.")
-                (grantResults[0] == PackageManager.PERMISSION_GRANTED) ->
-                    tracker.startLocationUpdates(this, model.setting.sampleInterval.value!!)
-
-                else -> {
-                    showSnackBar(
-                        R.string.permission_denied_explanation, R.string.settings,
-                        View.OnClickListener {
-                            val intent = Intent().apply {
-                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                                data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            }
-                            startActivity(intent)
-                        })
-                }
-            }
-        }
-    }
-
     private fun showSnackBar(
-        snackStrId: Int,
-        actionStrId: Int = 0,
-        listener: View.OnClickListener? = null
+            snackStrId: Int,
+            actionStrId: Int = 0,
+            listener: View.OnClickListener? = null
     ) {
         val snackBar = Snackbar.make(
-            this.findViewById(android.R.id.content)!!, getString(snackStrId),
-            Snackbar.LENGTH_INDEFINITE
+                this.findViewById(android.R.id.content)!!, getString(snackStrId),
+                Snackbar.LENGTH_INDEFINITE
         )
         if (actionStrId != 0 && listener != null) {
             snackBar.setAction(getString(actionStrId), listener)

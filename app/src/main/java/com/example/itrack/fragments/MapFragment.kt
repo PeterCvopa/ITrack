@@ -12,6 +12,7 @@ import com.example.itrack.R
 import com.example.itrack.common.LocationHelper
 import com.example.itrack.common.StringHelper
 import com.example.itrack.common.base.BaseFragment
+import com.example.itrack.common.componets.BarChart
 import com.example.itrack.location.LocationValidator
 import com.example.itrack.location.MinimalDistancePrecondition
 import com.example.itrack.viemodel.MapsViewModel
@@ -32,7 +33,9 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     }
 
     private lateinit var bottomSheetLayout: LinearLayout
+    private lateinit var statisticsbottomSheetLayout: LinearLayout
     private lateinit var sheetBehavior: BottomSheetBehavior<LinearLayout>
+    private lateinit var statisticsSheetBehavior: BottomSheetBehavior<LinearLayout>
     private lateinit var supportMapFragment: SupportMapFragment
     private lateinit var latView: TextView
     private lateinit var longView: TextView
@@ -48,6 +51,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     private lateinit var eastBtn: MaterialButton
     private lateinit var southBtn: MaterialButton
     private lateinit var westBtn: MaterialButton
+    private lateinit var barChart: BarChart
 
     private lateinit var mMap: GoogleMap
     private lateinit var options: PolylineOptions
@@ -57,6 +61,9 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
 
     init {
         locationValidator.addPrecondition(MinimalDistancePrecondition())
+    }
+    override fun onStatisticsItemMenuClicked() {
+        toggleStatisticsBottomSheet()
     }
 
     override fun onMainDrawerOpened() {
@@ -85,6 +92,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         supportMapFragment = (childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment)
         supportMapFragment.getMapAsync(this)
         sheetBehavior = BottomSheetBehavior.from(bottomSheetLayout)
+        statisticsSheetBehavior = BottomSheetBehavior.from(statisticsbottomSheetLayout)
         sheetBehavior.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(p0: View, p1: Int) {
                 Log.d(TAG, "sheetBehavior.onStateChanged")
@@ -100,6 +108,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         southBtn.setOnClickListener(this::onMostSouthButtonCliked)
         westBtn.setOnClickListener(this::onWestSouthButtonCliked)
         eastBtn.setOnClickListener(this::onEastSouthButtonCliked)
+        barChart.setData(listOf(10, 20, 30, 40, 50, 4, 32, 43, 21, 4))
     }
 
     private fun onMostNorthButtonCliked(view: View) {
@@ -146,6 +155,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     override fun referenceView(view: View) {
         with(view) {
             bottomSheetLayout = findViewById(R.id.bottom_sheet)
+            statisticsbottomSheetLayout = findViewById(R.id.statistics_bottom_sheet)
             latView = findViewById(R.id.bottom_sheet_lat_value)
             longView = findViewById(R.id.bottom_sheet_long_value)
             accuracyView = findViewById(R.id.bottom_sheet_accuracy_value)
@@ -159,6 +169,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
             eastBtn = findViewById(R.id.east_button)
             southBtn = findViewById(R.id.south_button)
             westBtn = findViewById(R.id.west_button)
+            barChart = findViewById(R.id.bar_chart)
         }
     }
 
@@ -222,6 +233,14 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     private fun closeBottomSheetIfNeeded() {
         if (sheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
             sheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        }
+    }
+
+    private fun toggleStatisticsBottomSheet() {
+        if (statisticsSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
+            statisticsSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        } else {
+            statisticsSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
         }
     }
 

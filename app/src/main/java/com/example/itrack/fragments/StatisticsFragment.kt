@@ -11,6 +11,7 @@ import com.example.itrack.viemodel.MapsViewModel
 
 class StatisticsFragment : BaseFragment<MapsViewModel>() {
 
+
     lateinit var avgSpeedView: TextView
     lateinit var minSpeedView: TextView
     lateinit var maxSpeedView: TextView
@@ -19,6 +20,9 @@ class StatisticsFragment : BaseFragment<MapsViewModel>() {
     lateinit var minAltView: TextView
     lateinit var distanceView: TextView
 
+    override fun onStatisticsItemMenuClicked() {
+
+    }
 
     override fun onMainDrawerOpened() {
         //do nothing
