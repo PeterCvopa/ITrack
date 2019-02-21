@@ -63,6 +63,13 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         locationValidator.addPrecondition(MinimalDistancePrecondition())
     }
     override fun onStatisticsItemMenuClicked() {
+        val mostResentAccurecy = mutableListOf<Float>()
+        model.locationsList.takeLast(10).forEach {
+            mostResentAccurecy.add(it.accuracy)
+        it.accuracy
+         }
+
+        barChart.setData(mostResentAccurecy)
         toggleStatisticsBottomSheet()
     }
 
@@ -108,7 +115,6 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         southBtn.setOnClickListener(this::onMostSouthButtonCliked)
         westBtn.setOnClickListener(this::onWestSouthButtonCliked)
         eastBtn.setOnClickListener(this::onEastSouthButtonCliked)
-        barChart.setData(listOf(10, 20, 30, 40, 50, 4, 32, 43, 21, 4))
     }
 
     private fun onMostNorthButtonCliked(view: View) {
