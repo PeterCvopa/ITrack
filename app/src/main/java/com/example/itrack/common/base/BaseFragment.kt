@@ -37,4 +37,11 @@ abstract class BaseFragment<MODEL : ViewModel> : Fragment(), FragmentCommunicato
         }
         return view
     }
+
+    override fun onAccGraphItemMenuClicked() {
+
+    }
+
+    override fun onMainDrawerOpened() {
+    }
 }

@@ -19,5 +19,7 @@
         android:layout_height="wrap_content"
         android:layout_margin="4dp"
         app:barColor="@color/colorAccent"
+        app:titleText="@string/graph_title"
+        app:titleTextSize="40"
         app:maxNumberOfBars="7" />
 </LinearLayout>

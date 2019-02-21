@@ -18,6 +18,10 @@ public class StringHelper {
         return dateFormatter.format(new Date(value));
     }
 
+    public static String toText(Float value) {
+        return new DecimalFormat("#0.##").format(value);
+    }
+
     public static String toText(Float value, SpeedUnits unit) {
         return new DecimalFormat("#0.##").format(value)+" "+unit.name;
     }

@@ -1,6 +1,7 @@
 package com.example.itrack.fragments
 
 import android.location.Location
+import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.LinearLayout
@@ -24,6 +25,8 @@ import com.google.android.gms.maps.model.*
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import java.io.Serializable
+
 
 class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
@@ -33,9 +36,9 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     }
 
     private lateinit var bottomSheetLayout: LinearLayout
-    private lateinit var statisticsbottomSheetLayout: LinearLayout
+    private lateinit var graphBottomSheetLayout: LinearLayout
     private lateinit var sheetBehavior: BottomSheetBehavior<LinearLayout>
-    private lateinit var statisticsSheetBehavior: BottomSheetBehavior<LinearLayout>
+    private lateinit var graphSheetBehavior: BottomSheetBehavior<LinearLayout>
     private lateinit var supportMapFragment: SupportMapFragment
     private lateinit var latView: TextView
     private lateinit var longView: TextView
@@ -46,7 +49,8 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     private lateinit var fabLocation: FloatingActionButton
     private lateinit var markerDetailContainer: LinearLayout
     private lateinit var actionsContainer: ConstraintLayout
-    private var shownBottomSheetContainer: BottomSheetContainers = BottomSheetContainers.NONE
+    private var bottomSheetState: BottomSheetState = BottomSheetState.NONE
+    private var initBottomSheetState: BottomSheetState = BottomSheetState.NONE
     private lateinit var northBtn: MaterialButton
     private lateinit var eastBtn: MaterialButton
     private lateinit var southBtn: MaterialButton
@@ -58,24 +62,33 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     private var currentLocation: Location? = null
     private lateinit var locationChangeObserver: Observer<Location>
     private val locationValidator: LocationValidator = LocationValidator()
+    private val BOTTOM_SHEET_STATE_KEY = "BOTTOM_SHEET_STATE_KEY"
 
     init {
         locationValidator.addPrecondition(MinimalDistancePrecondition())
     }
-    override fun onStatisticsItemMenuClicked() {
-        val mostResentAccurecy = mutableListOf<Float>()
-        model.locationsList.takeLast(10).forEach {
-            mostResentAccurecy.add(it.accuracy)
-        it.accuracy
-         }
 
-        barChart.setData(mostResentAccurecy)
-        toggleStatisticsBottomSheet()
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putSerializable(BOTTOM_SHEET_STATE_KEY, bottomSheetState)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        savedInstanceState?.let {
+            initBottomSheetState = it.getSerializable(BOTTOM_SHEET_STATE_KEY) as BottomSheetState
+        }
+    }
+
+    override fun onAccGraphItemMenuClicked() {
+        prepareAndSetGraphData()
+        showBottomSheetContainerByType(BottomSheetState.GRAPH)
     }
 
     override fun onMainDrawerOpened() {
         Log.d(TAG, ".onMainDrawerOpened ")
-        showBottomSheetContainerByType(BottomSheetContainers.NONE)
+        showBottomSheetContainerByType(BottomSheetState.NONE)
+        closeGraphBottomSheetIfNeeded()
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -84,6 +97,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         options = PolylineOptions().width(model.setting.lineSize.toFloat()).color(model.setting.color).geodesic(true)
         drawAllLocations()
         startObservingLocationChange()
+        showBottomSheetContainerByType(initBottomSheetState)
     }
 
     override fun onDestroy() {
@@ -99,7 +113,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         supportMapFragment = (childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment)
         supportMapFragment.getMapAsync(this)
         sheetBehavior = BottomSheetBehavior.from(bottomSheetLayout)
-        statisticsSheetBehavior = BottomSheetBehavior.from(statisticsbottomSheetLayout)
+        graphSheetBehavior = BottomSheetBehavior.from(graphBottomSheetLayout)
         sheetBehavior.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(p0: View, p1: Int) {
                 Log.d(TAG, "sheetBehavior.onStateChanged")
@@ -111,43 +125,16 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         })
         fabAction.setOnClickListener(this::onActionFabClicked)
         fabLocation.setOnClickListener(this::onLocationFabClicked)
-        northBtn.setOnClickListener(this::onMostNorthButtonCliked)
-        southBtn.setOnClickListener(this::onMostSouthButtonCliked)
-        westBtn.setOnClickListener(this::onWestSouthButtonCliked)
-        eastBtn.setOnClickListener(this::onEastSouthButtonCliked)
+        northBtn.setOnClickListener(this::onMostNorthButtonClicked)
+        southBtn.setOnClickListener(this::onMostSouthButtonClicked)
+        westBtn.setOnClickListener(this::onWestSouthButtonClicked)
+        eastBtn.setOnClickListener(this::onEastSouthButtonClicked)
     }
 
-    private fun onMostNorthButtonCliked(view: View) {
-        if (!model.locationsList.isEmpty()) {
-            val mostNorthLocation = LocationHelper.mostNorth(model.locationsList)
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
-        }
-    }
-
-    private fun onMostSouthButtonCliked(view: View) {
-        if (!model.locationsList.isEmpty()) {
-            val mostNorthLocation = LocationHelper.mostSouth(model.locationsList)
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
-        }
-    }
-
-    private fun onWestSouthButtonCliked(view: View) {
-        if (!model.locationsList.isEmpty()) {
-            val mostNorthLocation = LocationHelper.mostWest(model.locationsList)
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
-        }
-    }
-
-    private fun onEastSouthButtonCliked(view: View) {
-        if (!model.locationsList.isEmpty()) {
-            val mostNorthLocation = LocationHelper.mostEast(model.locationsList)
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
-        }
-    }
 
     override fun onMarkerClick(marker: Marker?): Boolean {
         val index = marker?.tag as Int
-        this.showBottomSheetContainerByType(BottomSheetContainers.MARKER_DETAILS)
+        this.showBottomSheetContainerByType(BottomSheetState.MARKER_DETAILS)
         this.setBottomSheetData(model.locationsList[index])
         return true
     }
@@ -161,7 +148,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     override fun referenceView(view: View) {
         with(view) {
             bottomSheetLayout = findViewById(R.id.bottom_sheet)
-            statisticsbottomSheetLayout = findViewById(R.id.statistics_bottom_sheet)
+            graphBottomSheetLayout = findViewById(R.id.statistics_bottom_sheet)
             latView = findViewById(R.id.bottom_sheet_lat_value)
             longView = findViewById(R.id.bottom_sheet_long_value)
             accuracyView = findViewById(R.id.bottom_sheet_accuracy_value)
@@ -179,6 +166,34 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         }
     }
 
+    private fun onMostNorthButtonClicked(view: View) {
+        if (!model.locationsList.isEmpty()) {
+            val mostNorthLocation = LocationHelper.mostNorth(model.locationsList)
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        }
+    }
+
+    private fun onMostSouthButtonClicked(view: View) {
+        if (!model.locationsList.isEmpty()) {
+            val mostNorthLocation = LocationHelper.mostSouth(model.locationsList)
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        }
+    }
+
+    private fun onWestSouthButtonClicked(view: View) {
+        if (!model.locationsList.isEmpty()) {
+            val mostNorthLocation = LocationHelper.mostWest(model.locationsList)
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        }
+    }
+
+    private fun onEastSouthButtonClicked(view: View) {
+        if (!model.locationsList.isEmpty()) {
+            val mostNorthLocation = LocationHelper.mostEast(model.locationsList)
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(LocationHelper.locationToLatLng(mostNorthLocation)))
+        }
+    }
+
     private fun drawLocation(location: Location) {
         with(location) {
             addSetMarker(this)
@@ -187,17 +202,21 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         }
     }
 
-    private fun bottomSheetContainerVisibility(container: BottomSheetContainers) {
+    private fun bottomSheetContainerVisibility(container: BottomSheetState) {
         when (container) {
-            BottomSheetContainers.ACTIONS -> {
+            BottomSheetState.NAV_ACTIONS -> {
                 actionsContainer.visibility = View.VISIBLE
                 markerDetailContainer.visibility = View.GONE
             }
-            BottomSheetContainers.MARKER_DETAILS -> {
+            BottomSheetState.MARKER_DETAILS -> {
                 actionsContainer.visibility = View.GONE
                 markerDetailContainer.visibility = View.VISIBLE
             }
-            BottomSheetContainers.NONE -> {
+            BottomSheetState.NONE -> {
+            }
+            BottomSheetState.GRAPH -> {
+                actionsContainer.visibility = View.GONE
+                markerDetailContainer.visibility = View.VISIBLE
             }
         }
     }
@@ -237,16 +256,20 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     }
 
     private fun closeBottomSheetIfNeeded() {
-        if (sheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
+        if (sheetBehavior.state != BottomSheetBehavior.STATE_COLLAPSED) {
             sheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
         }
     }
 
-    private fun toggleStatisticsBottomSheet() {
-        if (statisticsSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
-            statisticsSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-        } else {
-            statisticsSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+    private fun openGraphBottomSheetIfNeeded() {
+        if (graphSheetBehavior.state != BottomSheetBehavior.STATE_EXPANDED) {
+            graphSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+        }
+    }
+
+    private fun closeGraphBottomSheetIfNeeded() {
+        if (graphSheetBehavior.state != BottomSheetBehavior.STATE_COLLAPSED) {
+            graphSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
         }
     }
 
@@ -259,11 +282,12 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     private fun addSetMarker(location: Location) {
         val current = LatLng(location.latitude, location.longitude)
         mMap.let { map ->
-            map.addMarker(MarkerOptions().position(current).title("Marker").icon(BitmapDescriptorFactory.fromResource(R.drawable.baseline_place_black)))
-                    .let { marker ->
-                        marker.tag = model.locationsList.size - 1
-                    }
-
+            map.addMarker(
+                MarkerOptions()
+                    .position(current)
+                    .title(resources.getString(R.string.marker_title))
+                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.baseline_place_black))
+            ).tag = model.locationsList.size - 1
         }
     }
 
@@ -281,63 +305,88 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
             }
 
             mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100),
-                    object : GoogleMap.CancelableCallback {
-                        override fun onFinish() {
-                            Log.d(TAG, ".CancelableCallback.onFinish ")
-                        }
+                object : GoogleMap.CancelableCallback {
+                    override fun onFinish() {
+                        Log.d(TAG, ".CancelableCallback.onFinish ")
+                    }
 
-                        override fun onCancel() {
-                            Log.d(TAG, ".CancelableCallback.onCancel ")
-                        }
-                    })
+                    override fun onCancel() {
+                        Log.d(TAG, ".CancelableCallback.onCancel ")
+                    }
+                })
         }
     }
 
 
-    private fun showBottomSheetContainerByType(event: BottomSheetContainers) {
-        if (event == BottomSheetContainers.NONE) {
-            closeBottomSheetIfNeeded()
-            shownBottomSheetContainer = event
-            return
-        }
-        if (event == BottomSheetContainers.MARKER_DETAILS) {
-            shownBottomSheetContainer = when (shownBottomSheetContainer) {
-                BottomSheetContainers.MARKER_DETAILS -> {
+    private fun showBottomSheetContainerByType(event: BottomSheetState) {
+        when (event) {
+            BottomSheetState.NONE -> {
+                closeBottomSheetIfNeeded()
+                closeGraphBottomSheetIfNeeded()
+                bottomSheetState = event
+                return
+            }
+            BottomSheetState.MARKER_DETAILS -> bottomSheetState = when (bottomSheetState) {
+                BottomSheetState.MARKER_DETAILS -> {
                     closeBottomSheetIfNeeded()
-                    BottomSheetContainers.NONE
+                    BottomSheetState.NONE
                 }
-                BottomSheetContainers.ACTIONS, BottomSheetContainers.NONE -> {
+                BottomSheetState.NAV_ACTIONS, BottomSheetState.NONE, BottomSheetState.GRAPH -> {
                     closeBottomSheetIfNeeded()
-                    bottomSheetContainerVisibility(BottomSheetContainers.MARKER_DETAILS)
+                    closeGraphBottomSheetIfNeeded()
+                    bottomSheetContainerVisibility(BottomSheetState.MARKER_DETAILS)
                     openBottomSheetIfNeeded()
-                    BottomSheetContainers.MARKER_DETAILS
+                    BottomSheetState.MARKER_DETAILS
                 }
             }
-        } else {
-            shownBottomSheetContainer = when (shownBottomSheetContainer) {
-                BottomSheetContainers.ACTIONS -> {
+            BottomSheetState.NAV_ACTIONS -> bottomSheetState = when (bottomSheetState) {
+                BottomSheetState.NAV_ACTIONS -> {
                     closeBottomSheetIfNeeded()
-                    BottomSheetContainers.NONE
+                    BottomSheetState.NONE
                 }
-                BottomSheetContainers.MARKER_DETAILS, BottomSheetContainers.NONE -> {
+                BottomSheetState.MARKER_DETAILS, BottomSheetState.NONE, BottomSheetState.GRAPH -> {
                     closeBottomSheetIfNeeded()
-                    bottomSheetContainerVisibility(BottomSheetContainers.ACTIONS)
+                    closeGraphBottomSheetIfNeeded()
+                    bottomSheetContainerVisibility(BottomSheetState.NAV_ACTIONS)
                     openBottomSheetIfNeeded()
-                    BottomSheetContainers.ACTIONS
+                    BottomSheetState.NAV_ACTIONS
+                }
+            }
+            BottomSheetState.GRAPH -> bottomSheetState = when (bottomSheetState) {
+                BottomSheetState.GRAPH -> {
+                    closeBottomSheetIfNeeded()
+                    BottomSheetState.NONE
+                }
+                BottomSheetState.MARKER_DETAILS, BottomSheetState.NONE, BottomSheetState.NAV_ACTIONS -> {
+                    closeBottomSheetIfNeeded()
+                    bottomSheetContainerVisibility(BottomSheetState.NONE)
+                    prepareAndSetGraphData()
+                    openGraphBottomSheetIfNeeded()
+                    BottomSheetState.GRAPH
                 }
             }
         }
     }
 
     private fun onActionFabClicked(view: View) {
-        showBottomSheetContainerByType(BottomSheetContainers.ACTIONS)
+        showBottomSheetContainerByType(BottomSheetState.NAV_ACTIONS)
     }
 
     private fun onLocationFabClicked(view: View) {
         moveCameraToBounds()
     }
 
-    enum class BottomSheetContainers {
-        ACTIONS, MARKER_DETAILS, NONE
+    private fun prepareAndSetGraphData() {
+        val mostResentAccuracy = mutableListOf<Float>()
+        model.locationsList.takeLast(10).forEach {
+            mostResentAccuracy.add(it.accuracy)
+            it.accuracy
+        }
+
+        barChart.setData(ArrayList<Float>(mostResentAccuracy))
+    }
+
+    enum class BottomSheetState : Serializable {
+        NAV_ACTIONS, MARKER_DETAILS, GRAPH, NONE
     }
 }

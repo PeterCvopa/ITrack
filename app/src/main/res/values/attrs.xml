@@ -4,5 +4,6 @@
         <attr name="maxNumberOfBars" format="integer" min="0" max="10"/>
         <attr name="barColor" format="reference"/>
         <attr name="titleText" format="string"/>
+        <attr name="titleTextSize" format="integer" min="10" max="50"/>
     </declare-styleable>
 </resources>

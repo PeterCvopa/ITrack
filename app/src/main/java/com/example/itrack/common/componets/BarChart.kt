@@ -9,35 +9,21 @@ import android.graphics.Paint.ANTI_ALIAS_FLAG
 import android.util.AttributeSet
 import android.view.View
 import com.example.itrack.R
+import com.example.itrack.common.StringHelper
 
 
 class BarChart(context: Context, attrs: AttributeSet) : View(context, attrs) {
+    private var mData: List<Float> = listOf()
 
     private var mTitleTextSize: Float = 0f
     private var mTextWidth: Float = 0f
     private var mTextColor: Int = 0
-    private var mData: List<Float> = listOf()
+
     private var barColor: Int = 0
     private var titleText: String = "Graph"
     private var mBarMaxNumber: Int = 10
-
-    private val barValueTextPaint: Paint = Paint(ANTI_ALIAS_FLAG).apply {
-        textSize = 30f
-        color = Color.BLACK
-    }
-    private val barLinePaint: Paint = Paint(ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
-        strokeWidth = 2f
-        alpha = 150
-    }
-    private val barTitleTextPaint: Paint = Paint(ANTI_ALIAS_FLAG).apply {
-        textSize = 60f
-        color = Color.BLACK
-    }
-    private val barLineTextPaint: Paint = Paint(ANTI_ALIAS_FLAG).apply {
-        textSize = 20f
-        color = Color.BLACK
-    }
+    private val spacing = GraphProportions.MEDIUM
+    private val leftGraphOffset = 50
 
     init {
         context.theme.obtainStyledAttributes(
@@ -49,11 +35,29 @@ class BarChart(context: Context, attrs: AttributeSet) : View(context, attrs) {
                 mBarMaxNumber = getInteger(R.styleable.BarChart_maxNumberOfBars, 0)
                 barColor = getColor(R.styleable.BarChart_barColor, resources.getColor(R.color.primary_material_dark))
                 titleText = getString(R.styleable.BarChart_titleText) ?: "Graph"
-                mTitleTextSize = getInteger(R.styleable.BarChart_titleText, 0).toFloat()
+                mTitleTextSize = getInteger(R.styleable.BarChart_titleTextSize, 50).toFloat()
             } finally {
                 recycle()
             }
         }
+    }
+
+    private val barValueTextPaint: Paint = Paint(ANTI_ALIAS_FLAG).apply {
+        textSize = 30f
+        color = Color.BLACK
+    }
+    private val barLinePaint: Paint = Paint(ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        strokeWidth = 2f
+        alpha = 150
+    }
+    private val barTitleTextPaint: Paint = Paint(ANTI_ALIAS_FLAG).apply {
+        textSize = mTitleTextSize
+        color = Color.BLACK
+    }
+    private val barLineTextPaint: Paint = Paint(ANTI_ALIAS_FLAG).apply {
+        textSize = 20f
+        color = Color.BLACK
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -93,55 +97,65 @@ class BarChart(context: Context, attrs: AttributeSet) : View(context, attrs) {
     }
 
     override fun onDraw(canvas: Canvas) {
-        //TODO wip need fix issiu when number of data items is too low
         //TODO fix alignment
         super.onDraw(canvas)
-        val leftGraphOffset = 30
         val graphWidth = width - leftGraphOffset
         val numberOfBars = getNumberOfBars()
         val barWidth = calculateBarWidth(numberOfBars, graphWidth)
-        val barSpacing = calculateBarSpaceWidth(numberOfBars, graphWidth)
-        val titleHeight = barTitleTextPaint.textSize
+        val barSpacing = calculateBarSpacingWidth(numberOfBars, graphWidth)
+        val titleSpaceHeight = barTitleTextPaint.textSize + 20f
         val graphHeight = height.toFloat()
-        val heightMultiplicationCoefficient = calculateHeightCoefficient(graphHeight - titleHeight)
-        val middleGraphYCoordinate = ((graphHeight - titleHeight) / 2) + titleHeight
-        val oneQuarterLineHeight = ((graphHeight - titleHeight) / 4) + titleHeight
-        val threeQuarterLineHeight = (3 * (graphHeight - titleHeight) / 4) + titleHeight
+        val heightMultiplicationCoefficient = calculateHeightCoefficient(graphHeight - titleSpaceHeight)
+
+        val threeQuarterLineHeight = ((graphHeight - titleSpaceHeight) / 4) + titleSpaceHeight
+        val middleGraphYCoordinate = ((graphHeight - titleSpaceHeight) / 2) + titleSpaceHeight
+        val oneQuarterLineHeight = (3 * (graphHeight - titleSpaceHeight) / 4) + titleSpaceHeight
+
+        val maxValue = mData.max() ?: 0.0f
+        val oneQuarterLineTitle = maxValue / 4
+        val middleQuarterLineTitle = maxValue / 2
+        val threeQuarterLineTitle = 3 * maxValue / 4
+
         var graphOffSet = leftGraphOffset.toFloat()
         canvas.apply {
             ///horizontal bottom line
             drawLine(graphOffSet, graphHeight, width.toFloat(), graphHeight, barLinePaint)
             ///horizontal  lines
             drawText(
-                "100",
+                StringHelper.toText(oneQuarterLineTitle),
                 0f,
                 oneQuarterLineHeight + barLineTextPaint.textSize / 2,
                 barLineTextPaint
             )
             drawLine(graphOffSet, oneQuarterLineHeight, width.toFloat(), oneQuarterLineHeight, barLinePaint)
             drawText(
-                "100",
+                StringHelper.toText(middleQuarterLineTitle),
                 0f,
                 middleGraphYCoordinate + barLineTextPaint.textSize / 2,
                 barLineTextPaint
             )
             drawLine(graphOffSet, middleGraphYCoordinate, width.toFloat(), middleGraphYCoordinate, barLinePaint)
             drawText(
-                "100",
+                StringHelper.toText(threeQuarterLineTitle),
                 0f,
                 threeQuarterLineHeight + barLineTextPaint.textSize / 2,
                 barLineTextPaint
             )
             drawLine(graphOffSet, threeQuarterLineHeight, width.toFloat(), threeQuarterLineHeight, barLinePaint)
             drawText(
-                "100",
+                StringHelper.toText(maxValue),
                 0f,
-                titleHeight + barLineTextPaint.textSize / 2,
+                titleSpaceHeight + barLineTextPaint.textSize / 2,
                 barLineTextPaint
             )
-            drawLine(graphOffSet, titleHeight, width.toFloat(), titleHeight, barLinePaint)
-            // start vertical line
-            //drawLine(0f, titleHeight, 0f, graphHeight, barLinePaint)
+
+            drawLine(graphOffSet, titleSpaceHeight, width.toFloat(), titleSpaceHeight, barLinePaint)
+            drawText(
+                titleText,
+                50f,
+                barTitleTextPaint.textSize,
+                barTitleTextPaint
+            )
             for (index in 0 until numberOfBars) {
                 drawRect(
                     graphOffSet,
@@ -151,29 +165,13 @@ class BarChart(context: Context, attrs: AttributeSet) : View(context, attrs) {
                     mRectanglePain
                 )
                 drawText(
-                    mData[index].toString(),
-                    graphOffSet + barWidth / 2,
-                    graphHeight - heightMultiplicationCoefficient * mData[index],
+                    StringHelper.toText(mData[index]),
+                    graphOffSet + barWidth / 3,
+                    graphHeight - heightMultiplicationCoefficient * mData[index] + barValueTextPaint.textSize,
                     barValueTextPaint
-                )
-                drawText(
-                    titleText,
-                    50f,
-                    titleHeight,
-                    barTitleTextPaint
                 )
                 graphOffSet += barSpacing + barWidth
             }
-
-        }
-    }
-
-    private val mTextPaint = Paint(ANTI_ALIAS_FLAG).apply {
-        color = mTextColor
-        if (mTitleTextSize == 0f) {
-            mTitleTextSize = textSize
-        } else {
-            textSize = mTitleTextSize
         }
     }
 
@@ -182,33 +180,47 @@ class BarChart(context: Context, attrs: AttributeSet) : View(context, attrs) {
         strokeWidth = 10f
     }
 
-    private val mPiePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-    }
-
     private val mShadowPaint = Paint(0).apply {
         color = 0x101010
         maskFilter = BlurMaskFilter(8f, BlurMaskFilter.Blur.NORMAL)
     }
 
 
-    private fun calculateBarWidth(barCount: Int, width: Int): Float {
+    private fun calculateBarWidth(realBarCount: Int, width: Int): Float {
         return if (width == 0) {
             0f
+
         } else {
-            (width / (barCount - 0.1f)) * 0.9f
+            val barCount = if (realBarCount < 3) {
+                3
+            } else {
+                realBarCount
+            }
+
+            (width / (barCount - spacing.spacingProportion)) * spacing.barProportion
         }
     }
 
-    private fun calculateBarSpaceWidth(barCount: Int, width: Int): Float {
+    private fun calculateBarSpacingWidth(realBarCount: Int, width: Int): Float {
         return if (width == 0) {
             0f
         } else {
-            (width / (barCount - 0.1f)) * 0.1f
+            val barCount = if (realBarCount < 3) {
+                3
+            } else {
+                realBarCount
+            }
+            (width / (barCount - spacing.spacingProportion)) * spacing.spacingProportion
         }
     }
 
     private fun calculateHeightCoefficient(maxHeight: Float): Float {
         return mData.max()?.run { maxHeight / this } ?: 0f
+    }
+
+    enum class GraphProportions(var spacingProportion: Float) {
+        LOW(0.1f), MEDIUM(0.3f), HIGH(0.5f);
+
+        val barProportion: Float = 1.0f - spacingProportion
     }
 }

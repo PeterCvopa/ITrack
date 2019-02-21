@@ -170,7 +170,8 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack {
                     true
                 }
                 R.id.nav_history ->{
-                    fragmentComm.onStatisticsItemMenuClicked()
+                    fragmentComm.onAccGraphItemMenuClicked()
+                    mDrawerLayout.closeDrawers()
                     true
                 }
                 else -> throw IllegalArgumentException("Does not know menu item with id: ${it.itemId}")

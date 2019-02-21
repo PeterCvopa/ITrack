@@ -15,8 +15,6 @@ import com.skydoves.colorpickerpreference.ColorPickerDialog
 
 
 class SettingFragment : BaseFragment<MapsViewModel>() {
-    override fun onStatisticsItemMenuClicked() {
-    }
 
     companion object {
         private val TAG = SettingFragment::class.simpleName
@@ -79,10 +77,6 @@ class SettingFragment : BaseFragment<MapsViewModel>() {
         }
     }
 
-    override fun onMainDrawerOpened() {
-        // no action required here
-    }
-
     override fun getXmlResource(): Int {
         return R.layout.setting_fragment_layout
     }
@@ -99,7 +93,6 @@ class SettingFragment : BaseFragment<MapsViewModel>() {
             samplingIntervalSpinner = this.findViewById(R.id.sample_interval_spinner)
         }
     }
-
 
     private fun onColorRowClicked(view: View) {
         colorPickerDialog?.show()

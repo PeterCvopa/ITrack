@@ -20,14 +20,6 @@ class StatisticsFragment : BaseFragment<MapsViewModel>() {
     lateinit var minAltView: TextView
     lateinit var distanceView: TextView
 
-    override fun onStatisticsItemMenuClicked() {
-
-    }
-
-    override fun onMainDrawerOpened() {
-        //do nothing
-    }
-
     override fun getXmlResource(): Int {
         return R.layout.statistics_fragment_layout
     }

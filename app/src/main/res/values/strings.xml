@@ -11,7 +11,7 @@
     <string name="bottom_sheet_time_title">Timestamp</string>
     <string name="bottom_sheet_source_title">Source</string>
     <string name="bottom_sheet_title">Marker detail</string>
-    <string name="history_menu_text">Show History</string>
+    <string name="graph_acc_menu_text">Accuracy Graph</string>
     <string name="stats_menu_text">Statistics</string>
     <string name="settings_menu_text">Settings</string>
     <string name="map_menu_text">Map</string>
@@ -34,6 +34,8 @@
     <string name="setting_sample_interval_subtitle_text">Select sample interval</string>
     <string name="color_picker_dialog_tile">ColorPicker Dialog</string>
     <string name="alt_title">Altitude</string>
+    <string name="graph_title">GPS Accuracy Graph</string>
+    <string name="marker_title">Marker</string>
     <string-array name="line_size_dropdown_options">
         <item>1</item>
         <item>2</item>
