@@ -2,6 +2,7 @@ package com.example.itrack
 
 import android.Manifest
 import android.content.Intent
+import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -9,6 +10,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.PermissionChecker
@@ -23,17 +25,22 @@ import com.example.itrack.location.LocationChangeCallBack
 import com.example.itrack.location.Tracker
 import com.example.itrack.location.TrackerGPS
 import com.example.itrack.viemodel.MapsViewModel
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationSettingsStatusCodes
+import com.google.android.gms.tasks.OnFailureListener
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
 import java.io.Serializable
 
-class MainActivity : AppCompatActivity(), LocationChangeCallBack {
+class MainActivity : AppCompatActivity(), LocationChangeCallBack, OnFailureListener {
 
     companion object {
         private val TAG = MainActivity::class.simpleName
         private const val CURRENT_FRAGMENT_KEY = "CURRENT_FRAGMENT_KEY"
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
+        private const val REQUEST_CHECK_SETTINGS = 0x1
     }
 
     private lateinit var tracker: Tracker
@@ -97,7 +104,7 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack {
             when {
                 grantResults.isEmpty() -> Log.i(MainActivity.TAG, "User interaction was cancelled.")
                 (grantResults[0] == PackageManager.PERMISSION_GRANTED) ->
-                    tracker.startLocationUpdates(this, model.setting.sampleInterval)
+                    tracker.startLocationUpdates(this, model.setting.sampleInterval, this)
 
                 else -> {
                     showSnackBar(
@@ -127,7 +134,7 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack {
     private fun initTracking() {
         Log.d(TAG, ".initializing tracking")
         if (checkPermissions()) {
-            tracker.startLocationUpdates(this, model.setting.sampleInterval)
+            tracker.startLocationUpdates(this, model.setting.sampleInterval, this)
         } else {
             requestPermissions()
         }
@@ -278,6 +285,34 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack {
             snackBar.setAction(getString(actionStrId), listener)
         }
         snackBar.show()
+    }
+
+    override fun onFailure(e: Exception) {
+        val statusCode = (e as ApiException).statusCode
+        when (statusCode) {
+            LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
+                onSettingNeedResolution(e)
+            }
+            LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
+                onSettingFail()
+            }
+        }
+    }
+
+
+    private fun onSettingNeedResolution(e: Exception) {
+        Log.d(TAG, "Location settings are not satisfied. Attempting to upgrade " + "location settings ")
+        try {
+            val rae = e as ResolvableApiException
+            rae.startResolutionForResult(this, REQUEST_CHECK_SETTINGS)
+        } catch (sie: IntentSender.SendIntentException) {
+            Log.e(TAG, sie.message)
+        }
+    }
+
+    private fun onSettingFail() {
+        Toast.makeText(this, this.resources.getString(R.string.insufficient_setting_message), Toast.LENGTH_LONG)
+            .show()
     }
 
     enum class FragmentType(val fragment: BaseFragment<*>, val titleResource: Int) : Serializable {
