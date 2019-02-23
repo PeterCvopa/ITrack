@@ -11,7 +11,6 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.Task
-import java.lang.Exception
 
 
 class TrackerGPS(private val activity: Activity) : Tracker {
@@ -79,6 +78,21 @@ class TrackerGPS(private val activity: Activity) : Tracker {
         }
     }
 
+    private fun onSettingNeedResolution(e: Exception) {
+        Log.d(TAG, "Location settings are not satisfied. Attempting to upgrade " + "location settings ")
+        try {
+            val rae = e as ResolvableApiException
+            rae.startResolutionForResult(activity, REQUEST_CHECK_SETTINGS)
+        } catch (sie: IntentSender.SendIntentException) {
+            Log.e(TAG, sie.message)
+        }
+    }
+
+    private fun onSettingFail() {
+        Toast.makeText(activity, activity.resources.getString(R.string.insufficient_setting_message), Toast.LENGTH_LONG)
+            .show()
+    }
+
     private fun createLocationCallBack(): LocationCallback {
         return object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult?) {
@@ -100,22 +114,5 @@ class TrackerGPS(private val activity: Activity) : Tracker {
         val builder = LocationSettingsRequest.Builder()
         builder.addLocationRequest(locationRequest)
         return builder.build()
-    }
-
-    private fun onSettingNeedResolution(e: Exception) {
-        Log.i(TAG, "Location settings are not satisfied. Attempting to upgrade " + "location settings ")
-        try {
-            val rae = e as ResolvableApiException
-            rae.startResolutionForResult(activity, REQUEST_CHECK_SETTINGS)
-        } catch (sie: IntentSender.SendIntentException) {
-            Log.e(TAG, sie.message)
-        }
-    }
-
-    private fun onSettingFail() {
-        val errorMessage = activity.resources.getString(R.string.insufficient_setting_message)
-        Log.e(TAG, errorMessage)
-        Toast.makeText(activity, errorMessage, Toast.LENGTH_LONG).show()
-        isTracking = false
     }
 }

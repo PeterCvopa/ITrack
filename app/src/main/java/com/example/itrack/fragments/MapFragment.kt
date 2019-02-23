@@ -73,8 +73,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         outState.putSerializable(BOTTOM_SHEET_STATE_KEY, bottomSheetState)
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun initializeParameters(savedInstanceState: Bundle?) {
         savedInstanceState?.let {
             initBottomSheetState = it.getSerializable(BOTTOM_SHEET_STATE_KEY) as BottomSheetState
         }
@@ -98,11 +97,6 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         drawAllLocations()
         startObservingLocationChange()
         showBottomSheetContainerByType(initBottomSheetState)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        model.currentLocation.removeObserver(locationChangeObserver)
     }
 
     override fun getXmlResource(): Int {
@@ -164,6 +158,10 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
             westBtn = findViewById(R.id.west_button)
             barChart = findViewById(R.id.bar_chart)
         }
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        model.currentLocation.removeObserver(locationChangeObserver)
     }
 
     private fun onMostNorthButtonClicked(view: View) {

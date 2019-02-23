@@ -19,10 +19,12 @@ abstract class BaseFragment<MODEL : ViewModel> : Fragment(), FragmentCommunicato
     protected abstract fun initializeModel(): MODEL
 
     protected abstract fun referenceView(view: View)
-
+    protected open fun initializeParameters(savedInstanceState: Bundle?) {
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        this.initializeParameters(savedInstanceState)
         model = this.initializeModel()
     }
 
@@ -31,7 +33,7 @@ abstract class BaseFragment<MODEL : ViewModel> : Fragment(), FragmentCommunicato
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(getXmlResource(), container, false)
-        if (view != null) {
+        view?.let {
             referenceView(view)
             initializeViews()
         }
