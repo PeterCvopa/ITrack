@@ -14,8 +14,9 @@ import com.example.itrack.common.LocationHelper
 import com.example.itrack.common.StringHelper
 import com.example.itrack.common.base.BaseFragment
 import com.example.itrack.common.componets.BarChart
-import com.example.itrack.location.LocationValidator
-import com.example.itrack.location.MinimalDistancePrecondition
+import com.example.itrack.location.precondition.AccuracyPrecondition
+import com.example.itrack.location.precondition.LocationValidator
+import com.example.itrack.location.precondition.MinimalDistancePrecondition
 import com.example.itrack.viemodel.MapsViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -65,7 +66,8 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     private val BOTTOM_SHEET_STATE_KEY = "BOTTOM_SHEET_STATE_KEY"
 
     init {
-        locationValidator.addPrecondition(MinimalDistancePrecondition())
+        locationValidator.addPrecondition(MinimalDistancePrecondition(15))
+        locationValidator.addPrecondition(AccuracyPrecondition())
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -159,6 +161,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
             barChart = findViewById(R.id.bar_chart)
         }
     }
+
     override fun onDestroy() {
         super.onDestroy()
         model.currentLocation.removeObserver(locationChangeObserver)
@@ -194,7 +197,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
 
     private fun drawLocation(location: Location) {
         with(location) {
-            addSetMarker(this)
+            addMarker(this)
             addLine(this)
             currentLocation = this
         }
@@ -221,8 +224,8 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
 
     private fun createLocationObserver(): Observer<Location> {
         return Observer {
-            var oldLocation: Location? = currentLocation
-            if (oldLocation == null || locationValidator.validate(oldLocation, it)) {
+            val oldLocation: Location? = currentLocation
+            if (oldLocation == null || locationValidator.validate(model.locationsList.takeLast(10), it)) {
                 model.locationsList.add(it)
                 drawLocation(it)
                 Log.d(TAG, "${model.locationsList.size} locations stored")
@@ -233,6 +236,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     }
 
     private fun startObservingLocationChange() {
+        model.currentLocation.removeObservers(this)
         locationChangeObserver = createLocationObserver()
         model.currentLocation.observe(this, locationChangeObserver)
     }
@@ -277,12 +281,11 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         }
     }
 
-    private fun addSetMarker(location: Location) {
-        val current = LatLng(location.latitude, location.longitude)
+    private fun addMarker(location: Location) {
         mMap.let { map ->
             map.addMarker(
                 MarkerOptions()
-                    .position(current)
+                    .position(LatLng(location.latitude, location.longitude))
                     .title(resources.getString(R.string.marker_title))
                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.baseline_place_black))
             ).tag = model.locationsList.size - 1
@@ -294,27 +297,15 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         mMap.addPolyline(options)
     }
 
-    private fun moveCameraToBounds() {
+    private fun moveCameraToBounds(locations: List<Location>) {
         val builder = LatLngBounds.Builder()
-        val mostCurrentPositions = model.locationsList.takeLast(10)
-        if (!mostCurrentPositions.isEmpty()) {
-            mostCurrentPositions.forEach {
+        if (!locations.isEmpty()) {
+            locations.forEach {
                 builder.include(LatLng(it.latitude, it.longitude))
             }
-
-            mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100),
-                object : GoogleMap.CancelableCallback {
-                    override fun onFinish() {
-                        Log.d(TAG, ".CancelableCallback.onFinish ")
-                    }
-
-                    override fun onCancel() {
-                        Log.d(TAG, ".CancelableCallback.onCancel ")
-                    }
-                })
+            mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100))
         }
     }
-
 
     private fun showBottomSheetContainerByType(event: BottomSheetState) {
         when (event) {
@@ -371,7 +362,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     }
 
     private fun onLocationFabClicked(view: View) {
-        moveCameraToBounds()
+        moveCameraToBounds(model.locationsList.takeLast(10))
     }
 
     private fun prepareAndSetGraphData() {
@@ -380,7 +371,6 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
             mostResentAccuracy.add(it.accuracy)
             it.accuracy
         }
-
         barChart.setData(ArrayList<Float>(mostResentAccuracy))
     }
 

@@ -122,6 +122,18 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, OnFailureListe
         }
     }
 
+    override fun onFailure(e: Exception) {
+        val statusCode = (e as ApiException).statusCode
+        when (statusCode) {
+            LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
+                onSettingNeedResolution(e)
+            }
+            LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
+                onSettingFail()
+            }
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         tracker.stopLocationUpdatesIfExist()
@@ -285,18 +297,6 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, OnFailureListe
             snackBar.setAction(getString(actionStrId), listener)
         }
         snackBar.show()
-    }
-
-    override fun onFailure(e: Exception) {
-        val statusCode = (e as ApiException).statusCode
-        when (statusCode) {
-            LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
-                onSettingNeedResolution(e)
-            }
-            LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
-                onSettingFail()
-            }
-        }
     }
 
 
