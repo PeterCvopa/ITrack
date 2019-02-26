@@ -4,5 +4,9 @@ import com.google.android.gms.tasks.OnFailureListener
 
 interface Tracker {
     fun stopLocationUpdatesIfExist()
-    fun startLocationUpdates(callBack: LocationChangeCallBack, sampleInterval: Int, onFailureListener: OnFailureListener)
+    fun startLocationUpdates(
+        sampleInterval: Int,
+        callBack: LocationChangeCallBack,
+        onFailureListener: OnFailureListener
+    )
 }

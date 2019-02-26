@@ -33,10 +33,10 @@
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
         android:layout_margin="16dp"
-        app:layout_dodgeInsetEdges="bottom"
         android:layout_marginBottom="60dp"
         android:backgroundTint="@color/backgroundColor"
         app:layout_anchorGravity="top"
+        app:layout_dodgeInsetEdges="bottom"
         app:srcCompat="@drawable/my_location_icon" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

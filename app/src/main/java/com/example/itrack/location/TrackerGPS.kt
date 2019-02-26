@@ -24,8 +24,8 @@ class TrackerGPS(private val activity: Activity) : Tracker {
 
     @SuppressLint("MissingPermission")
     override fun startLocationUpdates(
-        callBack: LocationChangeCallBack,
         sampleInterval: Int,
+        callBack: LocationChangeCallBack,
         onFailureListener: OnFailureListener
     ) {
         stopLocationUpdatesIfExist()

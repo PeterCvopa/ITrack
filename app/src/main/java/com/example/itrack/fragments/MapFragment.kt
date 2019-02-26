@@ -110,6 +110,15 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
         supportMapFragment.getMapAsync(this)
         sheetBehavior = BottomSheetBehavior.from(bottomSheetLayout)
         graphSheetBehavior = BottomSheetBehavior.from(graphBottomSheetLayout)
+        graphSheetBehavior.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onSlide(p0: View, p1: Float) {
+                Log.d(TAG, ".onSlide ")
+            }
+
+            override fun onStateChanged(p0: View, p1: Int) {
+                Log.d(TAG, ".onStateChanged ")
+            }
+        })
         sheetBehavior.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(p0: View, p1: Int) {
                 Log.d(TAG, "sheetBehavior.onStateChanged")

@@ -104,7 +104,7 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, OnFailureListe
             when {
                 grantResults.isEmpty() -> Log.i(MainActivity.TAG, "User interaction was cancelled.")
                 (grantResults[0] == PackageManager.PERMISSION_GRANTED) ->
-                    tracker.startLocationUpdates(this, model.setting.sampleInterval, this)
+                    tracker.startLocationUpdates(model.setting.sampleInterval, this, this)
 
                 else -> {
                     showSnackBar(
@@ -146,7 +146,7 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, OnFailureListe
     private fun initTracking() {
         Log.d(TAG, ".initializing tracking")
         if (checkPermissions()) {
-            tracker.startLocationUpdates(this, model.setting.sampleInterval, this)
+            tracker.startLocationUpdates(model.setting.sampleInterval, this, this)
         } else {
             requestPermissions()
         }
@@ -189,6 +189,10 @@ class MainActivity : AppCompatActivity(), LocationChangeCallBack, OnFailureListe
                     true
                 }
                 R.id.nav_history -> {
+                    with(FragmentType.MAP) {
+                        setFragmentIfNeeded(this)
+                        drawerSubTitleView.setText(this.titleResource)
+                    }
                     fragmentComm.onAccGraphItemMenuClicked()
                     mDrawerLayout.closeDrawers()
                     true

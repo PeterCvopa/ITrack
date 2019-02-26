@@ -17,10 +17,9 @@ class BarChart(context: Context, attrs: AttributeSet) : View(context, attrs) {
 
     private var mTitleTextSize: Float = 0f
     private var mTextWidth: Float = 0f
-    private var mTextColor: Int = 0
 
     private var barColor: Int = 0
-    private var titleText: String = "Graph"
+    private var titleText: String = ""
     private var mBarMaxNumber: Int = 10
     private val spacing = GraphProportions.MEDIUM
     private val leftGraphOffset = 50
@@ -34,7 +33,7 @@ class BarChart(context: Context, attrs: AttributeSet) : View(context, attrs) {
             try {
                 mBarMaxNumber = getInteger(R.styleable.BarChart_maxNumberOfBars, 0)
                 barColor = getColor(R.styleable.BarChart_barColor, resources.getColor(R.color.primary_material_dark))
-                titleText = getString(R.styleable.BarChart_titleText) ?: "Graph"
+                titleText = getString(R.styleable.BarChart_titleText) ?: DEFAULT_GRAPH_NAME
                 mTitleTextSize = getInteger(R.styleable.BarChart_titleTextSize, 50).toFloat()
             } finally {
                 recycle()
@@ -97,12 +96,11 @@ class BarChart(context: Context, attrs: AttributeSet) : View(context, attrs) {
     }
 
     override fun onDraw(canvas: Canvas) {
-        //TODO fix alignment
         super.onDraw(canvas)
         val graphWidth = width - leftGraphOffset
         val numberOfBars = getNumberOfBars()
         val barWidth = calculateBarWidth(numberOfBars, graphWidth)
-        val barSpacing = calculateBarSpacingWidth(numberOfBars, graphWidth)
+        val barSpacingWidth = calculateBarSpacingWidth(numberOfBars, graphWidth)
         val titleSpaceHeight = barTitleTextPaint.textSize + 20f
         val graphHeight = height.toFloat()
         val heightMultiplicationCoefficient = calculateHeightCoefficient(graphHeight - titleSpaceHeight)
@@ -170,7 +168,7 @@ class BarChart(context: Context, attrs: AttributeSet) : View(context, attrs) {
                     graphHeight - heightMultiplicationCoefficient * mData[index] + barValueTextPaint.textSize,
                     barValueTextPaint
                 )
-                graphOffSet += barSpacing + barWidth
+                graphOffSet += barSpacingWidth + barWidth
             }
         }
     }
@@ -222,5 +220,9 @@ class BarChart(context: Context, attrs: AttributeSet) : View(context, attrs) {
         LOW(0.1f), MEDIUM(0.3f), HIGH(0.5f);
 
         val barProportion: Float = 1.0f - spacingProportion
+    }
+
+    companion object {
+        private const val DEFAULT_GRAPH_NAME = "Graph"
     }
 }
