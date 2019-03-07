@@ -106,6 +106,7 @@ class MapFragment : BaseFragment<MapsViewModel>(), OnMapReadyCallback, GoogleMap
     }
 
     override fun initializeViews() {
+        Log.d(TAG, "initializeViews")
         supportMapFragment = (childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment)
         supportMapFragment.getMapAsync(this)
         sheetBehavior = BottomSheetBehavior.from(bottomSheetLayout)
